@@ -6,23 +6,25 @@
 #include <sstream>
 #include <vector>
 
-#define VK_USE_PLATFORM_WIN32_KHR
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-#define GLFW_EXPOSE_NATIVE_WIN32
-#include <GLFW/glfw3native.h>
+//#define VK_USE_PLATFORM_WIN32_KHR
+//#define GLFW_INCLUDE_VULKAN
+//#include <GLFW/glfw3.h>
+//#define GLFW_EXPOSE_NATIVE_WIN32
+//#include <GLFW/glfw3native.h>
+
 #include <vulkan/vulkan.h>
 
 namespace Debug
 {
 
+const std::vector<const char*> validationLayers = {
+	"VK_LAYER_KHRONOS_validation"
+};
+
 #if defined(NDEBUG)
 	constexpr bool enableValidationLayers = false;
 #elif defined(DEBUG) && defined(USE_VALIDATION_LAYERS)
 
-	const std::vector<const char*> validationLayers = {
-		"VK_LAYER_KHRONOS_validation"
-	};
 	constexpr bool enableValidationLayers = true;
 
 #else 
