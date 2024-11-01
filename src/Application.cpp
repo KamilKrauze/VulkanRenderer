@@ -396,8 +396,6 @@ VKAPI_ATTR VkBool32 VKAPI_CALL Application::debugCallback(VkDebugUtilsMessageSev
 		break;
 	}
 	
-
-
 	return VK_FALSE;
 }
 
@@ -805,7 +803,6 @@ void Application::createGraphicsPipeline()
 
 	LOG_SUCCESS("Graphics pipeline successfully created!");
 
-
 	vkDestroyShaderModule(logicalDevice, fragShaderModule, nullptr);
 	vkDestroyShaderModule(logicalDevice, vertShaderModule, nullptr);
 }
@@ -817,6 +814,7 @@ std::vector<char> Application::loadShader(const std::string& filename)
 #else
 	std::ifstream file(filename, std::ios::ate | std::ios::binary);
 #endif
+
 	if (!file.is_open())
 		throw std::runtime_error("Failed to open file! - " + filename);
 
