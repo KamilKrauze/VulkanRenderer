@@ -50,7 +50,7 @@ void Application::initVulkan()
 	Debug::setupDebugMessenger(instance, debugMessenger);
 	createSurface();
 	physicalDevice = GfxDevice::pickPhysicalDevice(instance, surface);
-	createLogicalDevice();
+	logicalDevice = GfxDevice::createLogicalDevice(physicalDevice, surface, graphicsQueue, presentQueue);
 	createSwapChain();
 	createImageViews();
 	createRenderPass();
@@ -169,51 +169,6 @@ void Application::createInstance()
 		LOG_INFO(msg.c_str());
 	}
 	LOG_SUCCESS("Vulkan instance created succesfully!");
-}
-
-void Application::createLogicalDevice()
-{
-	GfxDevice::Details::QueueFamilyIndices indices = GfxDevice::findQueueFamilies(physicalDevice, surface);
-
-	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-	std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(), indices.presentFamily.value() };
-
-	float queuePriority = 1.0f;
-	for (uint32_t queueFamily : uniqueQueueFamilies)
-	{
-		VkDeviceQueueCreateInfo queueCreateInfo{};
-		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		queueCreateInfo.queueFamilyIndex = queueFamily;
-		queueCreateInfo.queueCount = 1;
-		queueCreateInfo.pQueuePriorities = &queuePriority;
-		queueCreateInfos.push_back(queueCreateInfo);
-	}
-
-	VkPhysicalDeviceFeatures deviceFeatures{};
-	VkDeviceCreateInfo createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());;
-	createInfo.pQueueCreateInfos = queueCreateInfos.data();
-	createInfo.pEnabledFeatures = &deviceFeatures;
-	createInfo.enabledExtensionCount = static_cast<uint32_t>(GfxDevice::deviceExtensions.size());
-	createInfo.ppEnabledExtensionNames = GfxDevice::deviceExtensions.data();
-
-	if (Debug::enableValidationLayers)
-	{
-		createInfo.enabledLayerCount = static_cast<uint32_t>(Debug::validationLayers.size());
-		createInfo.ppEnabledLayerNames = Debug::validationLayers.data();
-	}
-	else {
-		createInfo.enabledLayerCount = 0;
-	}
-
-	if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &logicalDevice) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create logical device!");
-
-	vkGetDeviceQueue(logicalDevice, indices.graphicsFamily.value(), 0, &graphicsQueue);
-	vkGetDeviceQueue(logicalDevice, indices.presentFamily.value(), 0, &presentQueue);
-
-	LOG_SUCCESS("Logical device successfully created!");
 }
 
 void Application::createSurface()
