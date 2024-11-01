@@ -168,8 +168,7 @@ void Application::createInstance()
 			msg += "\t\t" + std::string(ext.extensionName) + "\n";
 		LOG_INFO(msg.c_str());
 	}
-
-	return;
+	LOG_SUCCESS("Vulkan instance created succesfully!");
 }
 
 void Application::createLogicalDevice()
