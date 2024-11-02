@@ -4,15 +4,10 @@
 #include <vector>
 #include <string>
 
-#define VK_USE_PLATFORM_WIN32_KHR
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-#define GLFW_EXPOSE_NATIVE_WIN32
-#include <GLFW/glfw3native.h>
+#include "Core/Window.hpp"
+#include "Renderer/GfxDevice.hpp"
 
 #include <vulkan/vulkan.h>
-
-#include "Renderer/GfxDevice.hpp"
 
 class Application
 {
@@ -23,17 +18,16 @@ public:
 public:
 	void run()
 	{
-		initWindow();
+
+		window = new Window({800, 600, "Vulkan"});
 		initVulkan();
 		mainLoop();
 		cleanup();
 	}
 private:
-	void initWindow();
 
 	void initVulkan();
 	void createInstance();
-	void createSurface();
 
 	void mainLoop();
 	void cleanup();
@@ -66,7 +60,7 @@ private:
 	void drawFrame();
 
 private:
-	GLFWwindow* window;
+	Window* window;
 	VkInstance instance;
 	VkDebugUtilsMessengerEXT debugMessenger;
 
@@ -74,7 +68,6 @@ private:
 	VkDevice logicalDevice;
 	VkQueue graphicsQueue;
 	
-	VkSurfaceKHR surface;
 	VkQueue presentQueue;
 	VkSwapchainKHR swapChain;
 	std::vector<VkImage> swapChainImages;

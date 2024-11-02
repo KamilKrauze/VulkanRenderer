@@ -23,34 +23,13 @@ constexpr int MAX_FRAMES_IN_FLIGHT = 1;
 
 bool frameBufferResized = false;
 
-static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
-{
-	frameBufferResized = true;
-}
-
-void Application::initWindow()
-{
-	glfwInit();
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
-	if (!window) {
-		LOG_ERROR("Failed window creation!\n");
-		glfwTerminate();
-	}
-
-	glfwSetWindowUserPointer(window, this);
-	glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-
-	LOG_SUCCESS("Created window!");
-}
-
 void Application::initVulkan()
 {
 	createInstance();
 	Debug::setupDebugMessenger(instance, debugMessenger);
-	createSurface();
-	physicalDevice = GfxDevice::pickPhysicalDevice(instance, surface);
-	logicalDevice = GfxDevice::createLogicalDevice(physicalDevice, surface, graphicsQueue, presentQueue);
+	window->createSurface(instance);
+	physicalDevice = GfxDevice::pickPhysicalDevice(instance, window->getWinSurface());
+	logicalDevice = GfxDevice::createLogicalDevice(physicalDevice, window->getWinSurface(), graphicsQueue, presentQueue);
 	createSwapChain();
 	createImageViews();
 	createRenderPass();
@@ -63,7 +42,7 @@ void Application::initVulkan()
 
 void Application::mainLoop()
 {
-	while (!glfwWindowShouldClose(window))
+	while (!glfwWindowShouldClose(&window->getNativeWindow()))
 	{
 		glfwPollEvents();
 		drawFrame();
@@ -97,11 +76,10 @@ void Application::cleanup()
 	if (Debug::enableValidationLayers)
 		Debug::DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 
-	vkDestroySurfaceKHR(instance, surface, nullptr);
+	vkDestroySurfaceKHR(instance, window->getWinSurface(), nullptr);
 	vkDestroyInstance(instance, nullptr);
-	
-	glfwDestroyWindow(window);
-	glfwTerminate();
+
+	delete window;
 }
 
 void Application::createInstance()
@@ -171,19 +149,6 @@ void Application::createInstance()
 	LOG_SUCCESS("Vulkan instance created succesfully!");
 }
 
-void Application::createSurface()
-{
-	VkWin32SurfaceCreateInfoKHR createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-	createInfo.hwnd = glfwGetWin32Window(window);
-	createInfo.hinstance = GetModuleHandle(nullptr);
-
-	if (vkCreateWin32SurfaceKHR(instance, &createInfo, nullptr, &surface) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create window surface!");
-
-	LOG_SUCCESS("Surface successfully created!");
-}
-
 std::vector<const char*> Application::getRequiredExtensions()
 {
 	uint32_t glfwExtensionCount = 0;
@@ -234,7 +199,7 @@ VkExtent2D Application::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabil
 	else
 	{
 		int width = 0, height = 0;
-		glfwGetFramebufferSize(window, &width, &height);
+		glfwGetFramebufferSize(&window->getNativeWindow(), &width, &height);
 
 		VkExtent2D actualExtent = {
 			static_cast<uint32_t>(width),
@@ -250,7 +215,7 @@ VkExtent2D Application::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabil
 
 void Application::createSwapChain()
 {
-	GfxDevice::Details::SwapChainSupportDetails swapChainSupport = GfxDevice::querySwapChainSupport(physicalDevice, surface);
+	GfxDevice::Details::SwapChainSupportDetails swapChainSupport = GfxDevice::querySwapChainSupport(physicalDevice, window->getWinSurface());
 
 	VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
 	VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
@@ -263,7 +228,7 @@ void Application::createSwapChain()
 
 	VkSwapchainCreateInfoKHR createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	createInfo.surface = surface;
+	createInfo.surface = window->getWinSurface();
 
 	createInfo.minImageCount = imageCount;
 	createInfo.imageFormat = surfaceFormat.format;
@@ -272,7 +237,7 @@ void Application::createSwapChain()
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-	GfxDevice::Details::QueueFamilyIndices indices = GfxDevice::findQueueFamilies(physicalDevice, surface);
+	GfxDevice::Details::QueueFamilyIndices indices = GfxDevice::findQueueFamilies(physicalDevice, window->getWinSurface());
 	uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
 	if (indices.graphicsFamily != indices.presentFamily)
@@ -586,7 +551,7 @@ void Application::createFramebuffers()
 
 void Application::createCommandPool()
 {
-	GfxDevice::Details::QueueFamilyIndices queueFamilyIndices = GfxDevice::findQueueFamilies(physicalDevice, surface);
+	GfxDevice::Details::QueueFamilyIndices queueFamilyIndices = GfxDevice::findQueueFamilies(physicalDevice, window->getWinSurface());
 	
 	VkCommandPoolCreateInfo poolInfo{};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -685,10 +650,10 @@ void Application::createSyncObjects()
 void Application::recreateSwapchain()
 {
 	int width = 0, height = 0;
-	glfwGetFramebufferSize(window, &width, &height);
+	glfwGetFramebufferSize(&window->getNativeWindow(), &width, &height);
 	while (width == 0 || height == 0)
 	{
-		glfwGetFramebufferSize(window, &width, &height);
+		glfwGetFramebufferSize(&window->getNativeWindow(), &width, &height);
 		glfwWaitEvents();
 	}
 
