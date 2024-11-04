@@ -1,5 +1,6 @@
 #include "Application.h"
 #include "Utils/logger.hpp"
+#include "Renderer/Buffers/Vertex.hpp"
 
 #include <stdexcept>
 #include <iostream>
@@ -73,6 +74,8 @@ void Application::initVulkan()
 	createGraphicsPipeline();
 	createFramebuffers();
 	createCommandPool();
+	createVertexBuffer();
+	createIndexBuffer();
 	createCommandBuffers();
 	createSyncObjects();
 }
@@ -93,6 +96,12 @@ void Application::mainLoop()
 void Application::cleanup()
 {
 	cleanupSwapchain();
+
+	vkDestroyBuffer(logicalDevice, indexBuffer, nullptr);
+	vkFreeMemory(logicalDevice, indexBufferMemory, nullptr);
+
+	vkDestroyBuffer(logicalDevice, vertexBuffer, nullptr);
+	vkFreeMemory(logicalDevice, vertexBufferMemory, nullptr);
 	
 	vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
@@ -662,8 +671,8 @@ void Application::createImageViews()
 
 void Application::createGraphicsPipeline()
 {
-	auto vertShaderCode = loadShader("./shaders/bin/redtri.vert.spv");
-	auto fragShaderCode = loadShader("./shaders/bin/redtri.frag.spv");
+	auto vertShaderCode = loadShader("./shaders/bin/blinn_phong.vert.spv");
+	auto fragShaderCode = loadShader("./shaders/bin/blinn_phong.frag.spv");
 
 	VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
 	VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
@@ -687,17 +696,21 @@ void Application::createGraphicsPipeline()
 		VK_DYNAMIC_STATE_SCISSOR
 	};
 
+
+	auto bindingDesc = Vertex::getBindDescription();
+	auto attribDescs = Vertex::getAttributeDescriptions();
+
+	VkPipelineVertexInputStateCreateInfo vertInputInfo{};
+	vertInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	vertInputInfo.vertexBindingDescriptionCount = 1;
+	vertInputInfo.pVertexBindingDescriptions = &bindingDesc;
+	vertInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attribDescs.size());
+	vertInputInfo.pVertexAttributeDescriptions = attribDescs.data();
+
 	VkPipelineDynamicStateCreateInfo dynamicState{};
 	dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 	dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
 	dynamicState.pDynamicStates = dynamicStates.data();
-
-	VkPipelineVertexInputStateCreateInfo vertInputInfo{};
-	vertInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	vertInputInfo.vertexBindingDescriptionCount = 0;
-	vertInputInfo.pVertexBindingDescriptions = nullptr;
-	vertInputInfo.vertexAttributeDescriptionCount = 0;
-	vertInputInfo.pVertexAttributeDescriptions = nullptr;
 
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
 	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -970,7 +983,14 @@ void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
 		scissor.extent = swapChainExtent;
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+		VkBuffer vertexBuffers[] = { vertexBuffer };
+		VkDeviceSize offsets[] = { 0 };
+
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+
+		//vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0); // Non-indexed
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 	}
 	vkCmdEndRenderPass(commandBuffer);
 
@@ -1098,4 +1118,137 @@ void Application::drawFrame()
 	}
 
 	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
+
+void Application::createVertexBuffer()
+{
+	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingBufferMemory;
+	
+	createBuffer(
+		bufferSize, 
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+		stagingBuffer, 
+		stagingBufferMemory
+	);
+
+	void* data;
+	vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+	memcpy(data, vertices.data(), (size_t)bufferSize);
+	vkUnmapMemory(logicalDevice, stagingBufferMemory);
+
+	createBuffer(bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, vertexBuffer, vertexBufferMemory);
+	cpyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+
+	vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
+	vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
+	LOG_INFO("Vertex buffer created");
+}
+
+void Application::createIndexBuffer()
+{
+	VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingBufferMemory;
+
+	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+	void* data;
+	vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+	memcpy(data, indices.data(), (size_t)bufferSize);
+	vkUnmapMemory(logicalDevice, stagingBufferMemory);
+
+	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+
+	cpyBuffer(stagingBuffer, indexBuffer, bufferSize);
+
+	vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
+	vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
+	LOG_INFO("Index buffer created");
+
+}
+
+void Application::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
+{
+	VkBufferCreateInfo bufferInfo{};
+	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bufferInfo.size = size;
+	bufferInfo.usage = usage;
+	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	if (vkCreateBuffer(logicalDevice, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
+		throw std::runtime_error("Failed to create vertex buffer!");
+	LOG_SUCCESS("Vertex buffer created successfully!");
+
+	VkMemoryRequirements memRequirements;
+	vkGetBufferMemoryRequirements(logicalDevice, buffer, &memRequirements);
+
+	VkMemoryAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memRequirements.size;
+	allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
+
+	if (vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
+		throw std::runtime_error("Failed to allocate vertex buffer memory!");
+	LOG_SUCCESS("Allocated vertex buffer memory successfully!");
+
+
+	vkBindBufferMemory(logicalDevice, buffer, bufferMemory, 0);
+	LOG_INFO("Buffer created");
+}
+
+void Application::cpyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+{
+	VkCommandBufferAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandPool = commandPool;
+	allocInfo.commandBufferCount = 1;
+
+	VkCommandBuffer commandBuffer;
+	vkAllocateCommandBuffers(logicalDevice, &allocInfo, &commandBuffer);
+
+	VkCommandBufferBeginInfo beginInfo{};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+	VkBufferCopy copyRegion{};
+	copyRegion.srcOffset = 0;
+	copyRegion.dstOffset = 0;
+	copyRegion.size = size;
+	vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+	LOG_VERBOSE("Copying buffer...");
+
+	vkEndCommandBuffer(commandBuffer);
+	LOG_INFO("Buffer copied!");
+
+
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+
+	vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueWaitIdle(graphicsQueue);
+	vkFreeCommandBuffers(logicalDevice, commandPool, 1, &commandBuffer);
+	LOG_VERBOSE("Freed from command buffer");
+}
+
+uint32_t Application::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+{
+	VkPhysicalDeviceMemoryProperties memProps;
+	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProps);
+
+	for (uint32_t i = 0; i < memProps.memoryTypeCount; i++)
+	{
+		if (typeFilter & (1 << i) && (memProps.memoryTypes[i].propertyFlags & properties) == properties)
+			return i;
+	}
+
+	throw std::runtime_error("Failed to find suitable memory type!");
 }
