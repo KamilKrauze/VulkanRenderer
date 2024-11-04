@@ -26,13 +26,13 @@ const std::vector<const char*> deviceExtensions = {
 
 #define USE_VALIDATION_LAYERS
 
-#if defined(NDEBUG)
-constexpr bool enableValidationLayers = false;
-#elif defined(DEBUG) && defined(USE_VALIDATION_LAYERS)
-
 const std::vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"
 };
+
+#if defined(NDEBUG)
+constexpr bool enableValidationLayers = false;
+#elif defined(DEBUG) && defined(USE_VALIDATION_LAYERS)
 constexpr bool enableValidationLayers = true;
 
 #else 

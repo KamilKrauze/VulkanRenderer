@@ -1,5 +1,7 @@
 #version 450
 
+#include "colour.glsl"
+
 vec2 positions[3];
 
 vec3 colours[3];
@@ -12,7 +14,7 @@ void main()
     positions[2] = vec2(-0.5, 0.5);
 
     colours[0] = vec3(1,0,0);
-    colours[1] = vec3(0,1,0);
+    colours[1] = red() + green();
     colours[2] = vec3(0,0,1);
 
     colour = colours[gl_VertexIndex];
