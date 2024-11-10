@@ -561,6 +561,10 @@ VkSurfaceFormatKHR Application::chooseSwapSurfaceFormat(const std::vector<VkSurf
 
 VkPresentModeKHR Application::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
 {
+#if DEBUG
+	return VK_PRESENT_MODE_FIFO_KHR; // Vsync
+#endif
+
 	for (const auto& mode : availablePresentModes)
 	{
 		if (mode == VK_PRESENT_MODE_MAILBOX_KHR)
@@ -1157,7 +1161,6 @@ void Application::updateUniformBuffer(uint32_t currentImage)
 	ubo.proj[1][1] *= -1;
 
 	memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
-
 }
 
 void Application::createVertexBuffer()
