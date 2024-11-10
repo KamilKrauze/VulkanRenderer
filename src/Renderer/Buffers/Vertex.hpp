@@ -33,10 +33,10 @@ struct Vertex
         attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
         attributeDescriptions[1].offset = offsetof(Vertex, colour);
 
-        attributeDescriptions[0].binding = 0;
-        attributeDescriptions[0].location = 2;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[0].offset = offsetof(Vertex, pos); // Normals
+        attributeDescriptions[2].binding = 0;
+        attributeDescriptions[2].location = 2;
+        attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[2].offset = offsetof(Vertex, pos); // Normals
 
         return attributeDescriptions;
     }
@@ -48,23 +48,6 @@ struct UniformBufferObject
     glm::mat4 view;
     glm::mat4 proj;
 };
-
-//const std::vector<Vertex> vertices = {
-//    {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-//    {{0.5f, 0.5f},  {0.0f, 1.0f, 0.0f}},
-//    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
-//};
-
-//const std::vector<Vertex> vertices = {
-//    {{-0.5f, -0.5f, 0.0f},    {1.0f, 0.0f, 0.0f}},
-//    {{0.5f, -0.5f, 0.0f},     {0.0f, 1.0f, 0.0f}},
-//    {{0.5f, 0.5f, 0.0f},      {0.0f, 0.0f, 1.0f}},
-//    {{-0.5f, 0.5f, 0.0f},     {1.0f, 1.0f, 1.0f}}
-//};
-
-//const std::vector<uint16_t> indices = {
-//    0, 1, 2, 2, 3, 0
-//};
 
 // Define the indices for the triangles that make up each face of the cube
 // Yes, IK this looks awful, watchu gonna do about it?

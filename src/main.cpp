@@ -14,6 +14,7 @@ int main()
 	catch (const std::exception& e)
 	{
 		LOG_ERROR(e.what());
+		std::cout << "App failed somehow...\n";
 		return EXIT_FAILURE;
 	}
 
