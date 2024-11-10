@@ -18,5 +18,7 @@ int main()
 	}
 
 	LOG_SUCCESS("Succesfully closed application!");
+	std::cout << "Press ENTER to close...";
+	std::cin.get();
 	return EXIT_SUCCESS;
 }

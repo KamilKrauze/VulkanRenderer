@@ -192,8 +192,10 @@ void Application::createInstance()
 	{
 		requiredExtensions.emplace_back(extensions[i]);
 	}
+#if defined(__APPLE__) && defined(__MACH__)
 	requiredExtensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 	createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
 	createInfo.enabledExtensionCount = requiredExtensions.size();
 	createInfo.ppEnabledExtensionNames = requiredExtensions.data();
 
@@ -763,6 +765,7 @@ void Application::createGraphicsPipeline()
 	rasterizer.rasterizerDiscardEnable = VK_FALSE;
 	
 	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+	rasterizer.polygonMode = VK_POLYGON_MODE_LINE;
 	rasterizer.lineWidth = 1.0f;
 	
 	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
@@ -1157,7 +1160,6 @@ void Application::updateUniformBuffer(uint32_t currentImage)
 	ubo.proj[1][1] *= -1;
 
 	memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
-
 }
 
 void Application::createVertexBuffer()
@@ -1180,7 +1182,7 @@ void Application::createVertexBuffer()
 	memcpy(data, vertices.data(), (size_t)bufferSize);
 	vkUnmapMemory(logicalDevice, stagingBufferMemory);
 
-	createBuffer(bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, vertexBuffer, vertexBufferMemory);
+	createBuffer(bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, vertexBuffer, vertexBufferMemory);
 	cpyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
 	vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
@@ -1226,6 +1228,8 @@ void Application::createUniformBuffers()
 	
 		vkMapMemory(logicalDevice, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
 	}
+
+	LOG_SUCCESS("Uniform buffer created!");
 }
 
 void Application::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
@@ -1238,7 +1242,7 @@ void Application::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMe
 
 	if (vkCreateBuffer(logicalDevice, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create vertex buffer!");
-	LOG_SUCCESS("Vertex buffer created successfully!");
+	LOG_SUCCESS("Buffer created successfully!");
 
 	VkMemoryRequirements memRequirements;
 	vkGetBufferMemoryRequirements(logicalDevice, buffer, &memRequirements);
@@ -1249,8 +1253,8 @@ void Application::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMe
 	allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
 	if (vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
-		throw std::runtime_error("Failed to allocate vertex buffer memory!");
-	LOG_SUCCESS("Allocated vertex buffer memory successfully!");
+		throw std::runtime_error("Failed to allocate buffer memory!");
+	LOG_SUCCESS("Allocated buffer memory successfully!");
 
 
 	vkBindBufferMemory(logicalDevice, buffer, bufferMemory, 0);
