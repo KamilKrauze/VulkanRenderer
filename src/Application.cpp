@@ -765,7 +765,6 @@ void Application::createGraphicsPipeline()
 	rasterizer.rasterizerDiscardEnable = VK_FALSE;
 	
 	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-	rasterizer.polygonMode = VK_POLYGON_MODE_LINE;
 	rasterizer.lineWidth = 1.0f;
 	
 	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
