@@ -7,8 +7,9 @@
 
 struct Vertex
 {
-    glm::vec3 pos;
-    glm::vec3 colour;
+    glm::vec3 pos = { 0,0,0 };
+    glm::vec3 colour = { 1,1,1 };
+    glm::vec3 normal = { 0, 0, 1 };
 
     static VkVertexInputBindingDescription getBindDescription()
     {
@@ -36,7 +37,7 @@ struct Vertex
         attributeDescriptions[2].binding = 0;
         attributeDescriptions[2].location = 2;
         attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[2].offset = offsetof(Vertex, pos); // Normals
+        attributeDescriptions[2].offset = offsetof(Vertex, normal); // Normals
 
         return attributeDescriptions;
     }
@@ -74,40 +75,40 @@ std::vector<uint16_t> indices = {
 // Define the vertices for a unit cube centered at the origin
 std::vector<Vertex> vertices = {
     // Top face
-    {{-0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 1.0f}}, // Vertex 0
-    {{ 0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 1.0f}}, // Vertex 1
-    {{ 0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 1.0f}}, // Vertex 2
-    {{-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 1.0f}}, // Vertex 3
+    {{-0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 1.0f}, { -1.0f, -1.0f, 1.0f}}, // Vertex 0
+    {{ 0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 1.0f}, {  1.0f, -1.0f, 1.0f}}, // Vertex 1
+    {{ 0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 1.0f}, {  1.0f,  1.0f, 1.0f}}, // Vertex 2
+    {{-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 1.0f}, { -1.0f,  1.0f, 1.0f}}, // Vertex 3
 
     // Left face
-    {{-0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}}, // Vertex 4
-    {{ 0.5f, -0.5f,  0.5f}, {1.0f, 1.0f, 0.0f}}, // Vertex 5
-    {{-0.5f, -0.5f,  -0.5f}, {1.0f, 0.0f, 1.0f}}, // Vertex 6
-    {{ 0.5f, -0.5f,  -0.5f}, {1.0f, 1.0f, 0.0f}}, // Vertex 7
+    {{-0.5f, -0.5f,  0.5f},  {1.0f, 0.0f, 0.0f}, {-1.0f, -1.0f,  1.0f}}, // Vertex 4
+    {{ 0.5f, -0.5f,  0.5f},  {1.0f, 1.0f, 0.0f}, { 1.0f, -1.0f,  1.0f}}, // Vertex 5
+    {{-0.5f, -0.5f, -0.5f},  {1.0f, 0.0f, 1.0f}, {-1.0f, -1.0f, -1.0f}}, // Vertex 6
+    {{ 0.5f, -0.5f, -0.5f},  {1.0f, 1.0f, 0.0f}, { 1.0f, -1.0f, -1.0f}}, // Vertex 7
 
     // Right face
-    {{ 0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}}, // Vertex 8
-    {{-0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}}, // Vertex 9
-    {{ 0.5f,  0.5f,  -0.5f}, {1.0f, 0.0f, 0.0f}}, // Vertex 10
-    {{-0.5f,  0.5f,  -0.5f}, {1.0f, 0.0f, 0.0f}}, // Vertex 11
+    {{ 0.5f,  0.5f,  0.5f},  {1.0f, 0.0f, 0.0f}, { 1.0f,  1.0f,  1.0f}}, // Vertex 8
+    {{-0.5f,  0.5f,  0.5f},  {1.0f, 0.0f, 0.0f}, {-1.0f,  1.0f,  1.0f}}, // Vertex 9
+    {{ 0.5f,  0.5f,  -0.5f}, {1.0f, 0.0f, 0.0f}, { 1.0f,  1.0f,  -1.0f}}, // Vertex 10
+    {{-0.5f,  0.5f,  -0.5f}, {1.0f, 0.0f, 0.0f}, {-1.0f,  1.0f,  -1.0f}}, // Vertex 11
 
     // Bottom face
-    {{-0.5f, -0.5f,  -0.5f}, {0.0f, 0.0f, 1.0f}}, // Vertex 12
-    {{ 0.5f, -0.5f,  -0.5f}, {0.0f, 0.0f, 1.0f}}, // Vertex 13
-    {{ 0.5f,  0.5f,  -0.5f}, {0.0f, 0.0f, 1.0f}}, // Vertex 14
-    {{-0.5f,  0.5f,  -0.5f}, {0.0f, 0.0f, 1.0f}}, // Vertex 15
+    {{-0.5f, -0.5f,  -0.5f}, {0.0f, 0.0f, 1.0f}, {-1.0f, -1.0f,  -1.0f}}, // Vertex 12
+    {{ 0.5f, -0.5f,  -0.5f}, {0.0f, 0.0f, 1.0f}, { 1.0f, -1.0f,  -1.0f}}, // Vertex 13
+    {{ 0.5f,  0.5f,  -0.5f}, {0.0f, 0.0f, 1.0f}, { 1.0f,  1.0f,  -1.0f}}, // Vertex 14
+    {{-0.5f,  0.5f,  -0.5f}, {0.0f, 0.0f, 1.0f}, {-1.0f,  1.0f,  -1.0f}}, // Vertex 15
 
     // Back face
-    {{ -0.5f,  0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}}, // Vertex 16
-    {{ -0.5f, -0.5f,  0.5f}, {1.0f, 1.0f, 1.0f}}, // Vertex 17
-    {{ -0.5f,  0.5f,  0.5f}, {1.0f, 1.0f, 1.0f}}, // Vertex 18
-    {{ -0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}}, // Vertex 19
+    {{ -0.5f,  0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, { -1.0f,  1.0f, -1.0f}}, // Vertex 16
+    {{ -0.5f, -0.5f,  0.5f}, {1.0f, 1.0f, 1.0f}, { -1.0f, -1.0f,  1.0f}}, // Vertex 17
+    {{ -0.5f,  0.5f,  0.5f}, {1.0f, 1.0f, 1.0f}, { -1.0f,  1.0f,  1.0f}}, // Vertex 18
+    {{ -0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, { -1.0f, -1.0f, -1.0f}}, // Vertex 19
 
     // Front face
-    {{ 0.5f,  0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}}, // Vertex 20
-    {{ 0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}}, // Vertex 21
-    {{ 0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}}, // Vertex 22
-    {{ 0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}}, // Vertex 23
+    {{ 0.5f,  0.5f, -0.5f},  {0.0f, 1.0f, 0.0f}, { 1.0f,  1.0f, -1.0f}}, // Vertex 20
+    {{ 0.5f, -0.5f,  0.5f},  {0.0f, 1.0f, 0.0f}, { 1.0f, -1.0f,  1.0f}}, // Vertex 21
+    {{ 0.5f,  0.5f,  0.5f},  {0.0f, 1.0f, 0.0f}, { 1.0f,  1.0f,  1.0f}}, // Vertex 22
+    {{ 0.5f, -0.5f, -0.5f},  {0.0f, 1.0f, 0.0f}, { 1.0f, -1.0f, -1.0f}}, // Vertex 23
 
 
 };
