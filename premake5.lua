@@ -1,6 +1,6 @@
 workspace "VulkanRenderer"
     architecture "x64"
-    configurations { "Debug", "Release" }
+    configurations { "Debug", "Release", "Shipping" }
 
 project "VulkanRenderer"
     location "src"
@@ -33,13 +33,10 @@ project "VulkanRenderer"
     links {"glfw3", "vulkan-1"}
 
 -- Windows system
-
     filter "system:windows"
         system "windows"
         cppdialect "C++17"
         systemversion "latest"
-        -- flags { "MultiProcessorCompile" }
-
 -- Linux system
     filter "system:linux"
         system "linux"
@@ -55,3 +52,9 @@ project "VulkanRenderer"
     filter "configurations:Release"
         defines "NDEBUG"
         optimize "On"
+
+    filter "configurations:Shipping"
+        defines {"NDEBUG", "SHIPPING"}
+        optimize "On"
+        flags { "MultiProcessorCompile" }
+        toolset "clang"

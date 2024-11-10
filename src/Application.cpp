@@ -579,7 +579,7 @@ VkPresentModeKHR Application::chooseSwapPresentMode(const std::vector<VkPresentM
 VkExtent2D Application::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities)
 {
 // Some windows bullshit
-#ifdef WIN32
+#if defined(_MSC_VER) && !defined(__clang__)
 #undef max()
 #endif
 
