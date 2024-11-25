@@ -4,3 +4,6 @@
 [submodule "thirdparty/include/glfw"]
 	path = thirdparty/include/glfw
 	url = https://github.com/glfw/glfw
+[submodule "thirdparty/include/stb-image"]
+	path = thirdparty/include/stb-image
+	url = https://www.github.com/nothings/stb
