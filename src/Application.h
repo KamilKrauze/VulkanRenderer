@@ -93,6 +93,9 @@ private:
 	void createCommandBuffers();
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
+	VkCommandBuffer beginSingleTimeCmds();
+	void endSingleTimeCmds(VkCommandBuffer cmdBuffer);
+
 	void createSyncObjects();
 
 	void recreateSwapchain();
@@ -111,8 +114,18 @@ private:
 	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
 	void createDescriptorSetLayout();
-	void createDescriptPool();
+	void createDescriptorPool();
 	void createDescriptorSets();
+
+	void createTextureImage();
+	void createImg(uint32_t width, uint32_t height, VkFormat fmt, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags props, VkImage& img, VkDeviceMemory& imgMemory);
+	void transitionImgLayout(VkImage img, VkFormat fmt, VkImageLayout oldLayout, VkImageLayout newLayout);
+	void copyBufferToImg(VkBuffer buffer, VkImage img, uint32_t width, uint32_t height);
+
+	void createTextureImgView();
+	VkImageView createImgView(VkImage img, VkFormat fmt);
+
+	void createTextureSampler();
 
 private:
 	GLFWwindow* window;
@@ -159,6 +172,14 @@ private:
 	std::vector<VkSemaphore> imageAvailableSemaphores;
 	std::vector<VkSemaphore> renderFinishedSemaphores;
 	std::vector<VkFence> inFlightFences;
+
+	VkImage textureImg;
+	VkDeviceMemory textureImgMemory;
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingBufferMemory;
+
+	VkImageView textureImgView;
+	VkSampler textureSampler;
 };
 
 #endif //!APPLICATION_H

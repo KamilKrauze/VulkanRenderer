@@ -1,7 +1,7 @@
 #ifndef LOGGER_HPP
 #define LOGGER_HPP
 
-#if DEBUG
+#if defined(DEBUG) || defined(NDEBUG)
 
 #include <cstdarg>
 #include <map>
