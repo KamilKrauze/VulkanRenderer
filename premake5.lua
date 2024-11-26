@@ -55,7 +55,7 @@ project "VulkanRenderer"
 
     filter "configurations:Shipping"
         defines {"SHIPPING"}
+        toolset "clang"
         optimize "On"
         flags { "MultiProcessorCompile" }
-        toolset "clang"
         debugdir "%{prj.location}/.."
