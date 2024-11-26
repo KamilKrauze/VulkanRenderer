@@ -23,17 +23,21 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb-image/stb_image.h>
 
-#define TRY_EXECVK(fn, errorMsg, successMsg) \
+#pragma region TRY_EXECVK MACRO
+
+#define TRY_EXECVK(fn, errorMsg, successMsg)	\
 if (fn != VK_SUCCESS)							\
 {												\
 	throw std::runtime_error(errorMsg);			\
 }												\
-LOG_SUCCESS(successMsg)
+LOG_SUCCESS(successMsg)							\
+
+#pragma endregion
 
 constexpr uint32_t WIDTH = 800;
 constexpr uint32_t HEIGHT = 600;
 
-constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+constexpr int MAX_FRAMES_IN_FLIGHT = 3;
 
 uint32_t currentFrame = 0;
 
@@ -56,6 +60,10 @@ constexpr bool enableValidationLayers = true;
 #else 
 constexpr bool enableValidationLayers = false;
 #endif
+
+size_t frame = 0;
+double prevTime = 0;
+double fps;
 
 static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
 {
@@ -106,10 +114,31 @@ void Application::initVulkan()
 
 void Application::mainLoop()
 {
+	using clock = std::chrono::high_resolution_clock;
+	auto startTime = clock::now();
+	frame = 0;
+
 	while (!glfwWindowShouldClose(window))
 	{
+		frame++;
+
+		auto currentTime = clock::now();
+		double elapsed = std::chrono::duration<double, std::chrono::seconds::period>(currentTime - startTime).count();
+
 		glfwPollEvents();
 		drawFrame();
+
+		if (elapsed >= 1.0)
+		{
+			fps = static_cast<double>(frame) / elapsed;
+			startTime = currentTime;
+			frame = 0;
+		}
+
+		std::stringstream ss;
+		ss << "Vulkan - FPS: ";
+		ss << fps;
+		glfwSetWindowTitle(window, ss.str().c_str());
 	}
 
 	vkDeviceWaitIdle(logicalDevice);
@@ -188,7 +217,7 @@ void Application::createInstance()
 	VkInstanceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	createInfo.pApplicationInfo = &appInfo;
-	createInfo.enabledExtensionCount = extensions.size();
+	createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
 	createInfo.ppEnabledExtensionNames = extensions.data();
 	
 	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
@@ -214,7 +243,7 @@ void Application::createInstance()
 	requiredExtensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 	createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 #endif
-	createInfo.enabledExtensionCount = requiredExtensions.size();
+	createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
 	createInfo.ppEnabledExtensionNames = requiredExtensions.data();
 
 	if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
@@ -389,10 +418,11 @@ void Application::setupDebugMessenger()
 	VkDebugUtilsMessengerCreateInfoEXT createInfo{};
 	populateDebugMessengerCreateInfo(createInfo);
 
-	if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS)
-		throw std::runtime_error("Failed to setup debug messenger!");
-
-	LOG_SUCCESS("Debug messenger setup!");
+	TRY_EXECVK(
+		CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger),
+		"Failed to setup debug messenger!",
+		"Debug messenger setup!"
+	);
 }
 
 void Application::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
@@ -466,8 +496,8 @@ bool Application::isDeviceSuitable(VkPhysicalDevice device)
 	VkPhysicalDeviceFeatures supportedFeatures;
 	vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
 
-
-	return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
+	const bool isSamplerAnisotropyEnabled = static_cast<bool>(supportedFeatures.samplerAnisotropy);
+	return indices.isComplete() && extensionsSupported && swapChainAdequate && isSamplerAnisotropyEnabled;
 
 	//VkPhysicalDeviceProperties deviceProps;
 	//vkGetPhysicalDeviceProperties(device, &deviceProps);
@@ -721,8 +751,8 @@ void Application::createImageViews()
 
 void Application::createGraphicsPipeline()
 {
-	auto vertShaderCode = loadShader("./shaders/bin/blinn_phong.vert.spv");
-	auto fragShaderCode = loadShader("./shaders/bin/blinn_phong.frag.spv");
+	auto vertShaderCode = loadShader("./shaders/bin/DoG.vert.spv");
+	auto fragShaderCode = loadShader("./shaders/bin/DoG.frag.spv");
 
 	VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
 	VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
@@ -872,6 +902,7 @@ void Application::createGraphicsPipeline()
 
 std::vector<char> Application::loadShader(const std::string& filename)
 {
+	LOG_INFO((std::string("Loading ") + filename).c_str());
 #if defined(DEBUG) || defined(NDEBUG)
 	std::ifstream file("../" + filename, std::ios::ate | std::ios::binary);
 #else
@@ -1216,8 +1247,12 @@ void Application::updateUniformBuffer(uint32_t currentImage)
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 	UniformBufferObject ubo;
-	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(180.0f) * 0, glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.view = glm::lookAt(glm::vec3(0.0f, 0.1f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	glm::mat4 _model(1.0f);
+	ubo.model = glm::rotate(_model, time * glm::radians(180.0f) * 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+	//float loc = -std::fabs(sinf(time * 0.01));
+	//ubo.model = glm::translate(_model, glm::vec3(0.0f, loc * 10, 0.0f));
+
+	ubo.view = glm::lookAt(glm::vec3(0.0f, 1.25f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 100.0f);
 	ubo.proj[1][1] *= -1;
 
@@ -1464,10 +1499,12 @@ void Application::createTextureImage()
 {
 	int texWidth = 0, texHeight = 0, texChannels = 0;
 
-#if defined(DEBUG)
-	stbi_uc* pixels = stbi_load("../textures/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+	stbi_uc* pixels = nullptr;
+
+#if defined(DEBUG) || defined(NDEBUG)
+	pixels = stbi_load("../textures/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 #elif defined(SHIPPING)
-	stbi_uc* pixels = stbi_load("./textures/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+	pixels = stbi_load("./textures/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 #endif
 	VkDeviceSize imgSize = texWidth * texHeight * 4;
 
@@ -1658,14 +1695,14 @@ void Application::createTextureSampler()
 {
 	VkSamplerCreateInfo samplerInfo{};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-	samplerInfo.magFilter = VK_FILTER_NEAREST;
+	samplerInfo.magFilter = VK_FILTER_LINEAR;
 	samplerInfo.minFilter = VK_FILTER_LINEAR;
 
 	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 
-	samplerInfo.anisotropyEnable = VK_FALSE;
+	samplerInfo.anisotropyEnable = VK_TRUE;
 	
 	VkPhysicalDeviceProperties props{};
 	vkGetPhysicalDeviceProperties(physicalDevice, &props);
