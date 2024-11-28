@@ -70,6 +70,8 @@ static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
 	frameBufferResized = true;
 }
 
+static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+
 void Application::initWindow()
 {
 	glfwInit();
@@ -82,6 +84,7 @@ void Application::initWindow()
 
 	glfwSetWindowUserPointer(window, this);
 	glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+	glfwSetKeyCallback(window, key_callback);
 
 	LOG_SUCCESS("Created window!");
 }
@@ -154,6 +157,9 @@ void Application::cleanup()
 	{
 		vkDestroyBuffer(logicalDevice, uniformBuffers[i], nullptr);
 		vkFreeMemory(logicalDevice, uniformBuffersMemory[i], nullptr);
+
+		vkDestroyBuffer(logicalDevice, uniformBuffers2[i], nullptr);
+		vkFreeMemory(logicalDevice, uniformBuffersMemory2[i], nullptr);
 	}
 
 	vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
@@ -1238,7 +1244,9 @@ void Application::drawFrame()
 
 	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
-
+struct helperUniforms {
+	float threshold = 0.2;
+} helperUn;
 void Application::updateUniformBuffer(uint32_t currentImage)
 {
 	static auto startTime = std::chrono::high_resolution_clock::now();
@@ -1257,6 +1265,7 @@ void Application::updateUniformBuffer(uint32_t currentImage)
 	ubo.proj[1][1] *= -1;
 
 	memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+	memcpy(uniformBuffersMapped2[currentImage], &helperUn, sizeof(helperUn));
 }
 
 void Application::createVertexBuffer()
@@ -1319,11 +1328,17 @@ void Application::createUniformBuffers()
 	uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
 	uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
 
+	uniformBuffers2.resize(MAX_FRAMES_IN_FLIGHT);
+	uniformBuffersMemory2.resize(MAX_FRAMES_IN_FLIGHT);
+	uniformBuffersMapped2.resize(MAX_FRAMES_IN_FLIGHT);
+
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
+		createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers2[i], uniformBuffersMemory2[i]);
 	
 		vkMapMemory(logicalDevice, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
+		vkMapMemory(logicalDevice, uniformBuffersMemory2[i], 0, bufferSize, 0, &uniformBuffersMapped2[i]);
 	}
 
 	LOG_SUCCESS("Uniform buffer created!");
@@ -1389,29 +1404,57 @@ uint32_t Application::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags 
 	throw std::runtime_error("Failed to find suitable memory type!");
 }
 
+uint32_t nextAvblBinding = 0;
+static std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
+
+/// <summary>
+/// Helper
+/// </summary>
+/// <param name="type"></param>
+/// <param name="stageFlags"></param>
+/// <param name="pSampler"></param>
+inline void addDescriptorLayoutBinding(VkDescriptorType type, VkShaderStageFlags stageFlags, VkSampler* pSampler = nullptr)
+{
+	VkDescriptorSetLayoutBinding layoutBinding{};
+	layoutBinding.binding = nextAvblBinding;
+	layoutBinding.descriptorType = type;
+	layoutBinding.descriptorCount = 1;
+	layoutBinding.stageFlags = stageFlags;
+	layoutBinding.pImmutableSamplers = pSampler;
+	nextAvblBinding++;
+
+	layoutBindings.push_back(layoutBinding);
+}
+
 void Application::createDescriptorSetLayout()
 {
-	VkDescriptorSetLayoutBinding uboLayoutBinding{};
-	uboLayoutBinding.binding = 0;
-	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uboLayoutBinding.descriptorCount = 1;
 
-	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-	uboLayoutBinding.pImmutableSamplers = nullptr; // Optional - Img sampling related descriptors
+	addDescriptorLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+	//VkDescriptorSetLayoutBinding uboLayoutBinding{};
+	//uboLayoutBinding.binding = 0;
+	//uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	//uboLayoutBinding.descriptorCount = 1;
 
-	VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-	samplerLayoutBinding.binding = 1;
-	samplerLayoutBinding.descriptorCount = 1;
-	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerLayoutBinding.pImmutableSamplers = nullptr;
-	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	//uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+	//uboLayoutBinding.pImmutableSamplers = nullptr; // Optional - Img sampling related descriptors
 
-	std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
+	addDescriptorLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	//VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+	//samplerLayoutBinding.binding = 1;
+	//samplerLayoutBinding.descriptorCount = 1;
+	//samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	//samplerLayoutBinding.pImmutableSamplers = nullptr;
+	//samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	addDescriptorLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+
+	//std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
+
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo{};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-	layoutInfo.pBindings = bindings.data();
+	layoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
+	layoutInfo.pBindings = layoutBindings.data();
 
 	TRY_EXECVK(
 		vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout),
@@ -1420,15 +1463,14 @@ void Application::createDescriptorSetLayout()
 	);
 }
 
+std::vector<VkDescriptorPoolSize> poolSizes;
 void Application::createDescriptorPool()
 {
 	auto count = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-	std::array<VkDescriptorPoolSize,2> poolSizes{};
-	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSizes[0].descriptorCount = count;
-	poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSizes[1].descriptorCount = count;
 
+	poolSizes.push_back({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, count });
+	poolSizes.push_back({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , count });
+	poolSizes.push_back({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, count });
 
 	VkDescriptorPoolCreateInfo poolInfo{};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -1455,29 +1497,33 @@ void Application::createDescriptorSets()
 	descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
 	if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, descriptorSets.data()) != VK_SUCCESS)
 		throw std::runtime_error("Failed to allocate descriptor sets!");
-
 	LOG_SUCCESS("Successfully allocated descriptor sets");
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		VkDescriptorBufferInfo bufferInfo{};
-		bufferInfo.buffer = uniformBuffers[i];
-		bufferInfo.offset = 0;
-		bufferInfo.range = sizeof(UniformBufferObject);
+		VkDescriptorBufferInfo uboBufferInfo{};
+		uboBufferInfo.buffer = uniformBuffers[i];
+		uboBufferInfo.offset = 0;
+		uboBufferInfo.range = sizeof(UniformBufferObject);
 
 		VkDescriptorImageInfo imgInfo{};
 		imgInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imgInfo.imageView = textureImgView;
 		imgInfo.sampler = textureSampler;
 
-		std::array<VkWriteDescriptorSet,2> descriptorWrites{};
+		VkDescriptorBufferInfo thresholdBufferInfo{};
+		thresholdBufferInfo.buffer = uniformBuffers2[i];
+		thresholdBufferInfo.offset = 0;
+		thresholdBufferInfo.range = sizeof(float);
+
+		std::array<VkWriteDescriptorSet,3> descriptorWrites{};
 		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWrites[0].dstSet = descriptorSets[i];
 		descriptorWrites[0].dstBinding = 0;
 		descriptorWrites[0].dstArrayElement = 0;
 		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		descriptorWrites[0].descriptorCount = 1;
-		descriptorWrites[0].pBufferInfo = &bufferInfo;
+		descriptorWrites[0].pBufferInfo = &uboBufferInfo;
 		descriptorWrites[0].pImageInfo = nullptr; // Optional
 		descriptorWrites[0].pTexelBufferView = nullptr; // Optional
 
@@ -1489,6 +1535,16 @@ void Application::createDescriptorSets()
 		descriptorWrites[1].descriptorCount = 1;
 		descriptorWrites[1].pImageInfo = &imgInfo; // Optional
 		descriptorWrites[1].pTexelBufferView = nullptr; // Optional
+
+		descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[2].dstSet = descriptorSets[i];
+		descriptorWrites[2].dstBinding = 2;
+		descriptorWrites[2].dstArrayElement = 0;
+		descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrites[2].descriptorCount = 1;
+		descriptorWrites[2].pBufferInfo = &thresholdBufferInfo;
+		descriptorWrites[2].pImageInfo = nullptr; // Optional
+		descriptorWrites[2].pTexelBufferView = nullptr; // Optional
 
 		vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 	}
@@ -1502,7 +1558,7 @@ void Application::createTextureImage()
 	stbi_uc* pixels = nullptr;
 
 #if defined(DEBUG) || defined(NDEBUG)
-	pixels = stbi_load("../textures/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+	pixels = stbi_load("../textures/texture.png", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 #elif defined(SHIPPING)
 	pixels = stbi_load("./textures/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 #endif
@@ -1722,4 +1778,19 @@ void Application::createTextureSampler()
 		"Failed to create texture sampler!",
 		"Successfully created texture sampler!"
 	);
+}
+
+static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+	if (key == GLFW_KEY_RIGHT && action >= GLFW_PRESS)
+	{
+		helperUn.threshold += 0.01f;
+		std::printf("\r%f", helperUn.threshold);
+	}
+
+	if (key == GLFW_KEY_LEFT && action >= GLFW_PRESS)
+	{
+		helperUn.threshold -= 0.01f;
+		std::printf("\r%f", helperUn.threshold);
+	}
 }

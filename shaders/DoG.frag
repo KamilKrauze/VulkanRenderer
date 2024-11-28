@@ -4,7 +4,12 @@ layout (location=0) in vec3 fragColour;
 layout (location=1) in vec2 fragTexCoord;
 
 layout(location=0) out vec4 outColour;
-layout(binding = 1) uniform sampler2D texSampler;
+
+layout(set=0, binding = 1) uniform sampler2D texSampler;
+layout(set=0, binding=2) uniform threshold
+{
+    float threshold;
+} obj;
 
 vec2 res = vec2(512,512);
 vec2 texelSize = vec2(1/res.x, 1/res.y);
@@ -71,9 +76,9 @@ void main()
     // Compute gradient magnitude (edge strength)
     float gradientMagnitude = length(vec2(dX, dY));
 
-    float edgeThreshold = 0.015;
+    // float edgeThreshold = 0.1;
     // Apply edge threshold to isolate edges
-    float edge = gradientMagnitude > edgeThreshold ? 1.0 : 0.0;
+    float edge = gradientMagnitude > obj.threshold ? 1.0 : 0.0;
 
     // outColour = vec4(fragColour, 1.0);
     outColour = vec4(vec3(edge), 1.0);

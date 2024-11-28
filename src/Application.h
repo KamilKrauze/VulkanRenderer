@@ -164,6 +164,10 @@ private:
 	std::vector<VkDeviceMemory> uniformBuffersMemory;
 	std::vector<void*> uniformBuffersMapped;
 
+	std::vector<VkBuffer> uniformBuffers2;
+	std::vector<VkDeviceMemory> uniformBuffersMemory2;
+	std::vector<void*> uniformBuffersMapped2;
+
 	std::vector<VkCommandBuffer> commandBuffers;
 	
 	VkDescriptorPool descriptorPool;
