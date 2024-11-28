@@ -1246,6 +1246,8 @@ void Application::drawFrame()
 }
 struct helperUniforms {
 	float threshold = 0.2;
+	int colorDepth = 16;
+	int texelSize = 64;
 } helperUn;
 void Application::updateUniformBuffer(uint32_t currentImage)
 {
@@ -1335,10 +1337,10 @@ void Application::createUniformBuffers()
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
-		createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers2[i], uniformBuffersMemory2[i]);
+		createBuffer(sizeof(helperUniforms), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers2[i], uniformBuffersMemory2[i]);
 	
 		vkMapMemory(logicalDevice, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
-		vkMapMemory(logicalDevice, uniformBuffersMemory2[i], 0, bufferSize, 0, &uniformBuffersMapped2[i]);
+		vkMapMemory(logicalDevice, uniformBuffersMemory2[i], 0, sizeof(helperUniforms), 0, &uniformBuffersMapped2[i]);
 	}
 
 	LOG_SUCCESS("Uniform buffer created!");
@@ -1558,7 +1560,7 @@ void Application::createTextureImage()
 	stbi_uc* pixels = nullptr;
 
 #if defined(DEBUG) || defined(NDEBUG)
-	pixels = stbi_load("../textures/texture.png", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+	pixels = stbi_load("../textures/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 #elif defined(SHIPPING)
 	pixels = stbi_load("./textures/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 #endif
@@ -1782,15 +1784,47 @@ void Application::createTextureSampler()
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
+	bool pressed = false;
 	if (key == GLFW_KEY_RIGHT && action >= GLFW_PRESS)
 	{
 		helperUn.threshold += 0.01f;
-		std::printf("\r%f", helperUn.threshold);
+		pressed = !pressed;
 	}
 
 	if (key == GLFW_KEY_LEFT && action >= GLFW_PRESS)
 	{
 		helperUn.threshold -= 0.01f;
-		std::printf("\r%f", helperUn.threshold);
+		pressed = !pressed;
 	}
+
+	if (key == GLFW_KEY_L && action >= GLFW_PRESS)
+	{
+		helperUn.colorDepth += 1;
+		pressed = !pressed;
+	}
+
+	if (key == GLFW_KEY_K && action >= GLFW_PRESS)
+	{
+		helperUn.colorDepth -= 1;
+		pressed = !pressed;
+	}
+
+	if (key == GLFW_KEY_M && action >= GLFW_PRESS)
+	{
+		helperUn.texelSize += 8;
+		pressed = !pressed;
+	}
+
+	if (key == GLFW_KEY_N && action >= GLFW_PRESS)
+	{
+		helperUn.texelSize -= 8;
+		pressed = !pressed;
+	}
+
+	if (pressed) {
+		std::printf("\rEdge: %f\n", helperUn.threshold);
+		std::printf("Depth: %d\n", helperUn.colorDepth);
+		std::printf("Tex Size: %d\n", helperUn.texelSize);
+	}
+
 }

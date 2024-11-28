@@ -9,6 +9,8 @@ layout(set=0, binding = 1) uniform sampler2D texSampler;
 layout(set=0, binding=2) uniform threshold
 {
     float threshold;
+    int colourDepth;
+    int texSize;
 } obj;
 
 vec2 res = vec2(512,512);
@@ -49,6 +51,8 @@ vec4 applyGaussianBlur(sampler2D tex, vec2 uv, float sigma) {
 
 void main()
 {
+    res = vec2(896);
+
 // Compute sigma1 and sigma2 dynamically based on texture resolution
     float maxDimension = max(res.x, res.y);
     float sigma1 = maxDimension * 0.005; // Example: small blur
@@ -62,6 +66,8 @@ void main()
     vec4 dog = blurred1 - blurred2;
 
     // Estimate gradients using central differences
+
+
     float dX = (texture(texSampler, fragTexCoord + vec2(texelSize.x, 0.0)).r -
                 texture(texSampler, fragTexCoord - vec2(texelSize.x, 0.0)).r) * 0.5;
     float dY = (texture(texSampler, fragTexCoord + vec2(0.0, texelSize.y)).r -
@@ -80,6 +86,11 @@ void main()
     // Apply edge threshold to isolate edges
     float edge = gradientMagnitude > obj.threshold ? 1.0 : 0.0;
 
+    vec2 size = floor(fragTexCoord * obj.texSize) / obj.texSize;
+    vec4 txtr = texture(texSampler, size);
+    vec3 quantColour = floor(txtr.rgb * vec3(obj.colourDepth)) / obj.colourDepth;
+    // outColour = vec4(quantColour,1);
+
     // outColour = vec4(fragColour, 1.0);
-    outColour = vec4(vec3(edge), 1.0);
+    outColour = vec4(vec3(edge), 1.0) * vec4(quantColour,1);
 }
