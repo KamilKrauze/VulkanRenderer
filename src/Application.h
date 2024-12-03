@@ -118,7 +118,7 @@ private:
 	void createDescriptorSets();
 
 	void createTextureImage();
-	void createImg(uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat fmt, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags props, VkImage& img, VkDeviceMemory& imgMemory);
+	void createImg(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits samples, VkFormat fmt, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags props, VkImage& img, VkDeviceMemory& imgMemory);
 	void transitionImgLayout(VkImage img, VkFormat fmt, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels);
 	void copyBufferToImg(VkBuffer buffer, VkImage img, uint32_t width, uint32_t height);
 
@@ -131,6 +131,9 @@ private:
 	VkFormat findDepthFormat();
 
 	void generateMipmaps(VkImage img, VkFormat fmt, int32_t width, int32_t height, uint32_t mipLevels);
+
+	VkSampleCountFlagBits getMaxUsableSampleCount();
+	void createColourResources();
 
 private:
 	GLFWwindow* window;
@@ -184,6 +187,11 @@ private:
 	VkImage depthImage;
 	VkDeviceMemory depthImageMemory;
 	VkImageView depthImgView;
+
+	VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+	VkImage colorImg;
+	VkDeviceMemory colorImgMem;
+	VkImageView colorImgView;
 };
 
 #endif //!APPLICATION_H
