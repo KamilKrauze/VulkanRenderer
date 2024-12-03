@@ -50,9 +50,9 @@ void Model::load(std::string_view fp)
 			};
 
 			vert.normal = {
-				attrib.normals[index.normal_index + 0],
-				attrib.normals[index.normal_index + 1],
-				attrib.normals[index.normal_index + 2],
+				attrib.normals[3 * index.normal_index + 0],
+				attrib.normals[3 * index.normal_index + 1],
+				attrib.normals[3 * index.normal_index + 2],
 			};
 
 			vert.colour = {1,1,1};
