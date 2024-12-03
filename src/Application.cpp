@@ -109,7 +109,6 @@ void Application::initVulkan()
 	createCommandPool();
 	createDepthResources();
 	createFramebuffers();
-	//createDepthResources();
 	createTextureImage();
 	createTextureImgView();
 	createTextureSampler();
