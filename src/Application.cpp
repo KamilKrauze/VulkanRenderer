@@ -831,7 +831,7 @@ void Application::createGraphicsPipeline()
 	rasterizer.lineWidth = 1.0f;
 	
 	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+	rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
 	
 	rasterizer.depthBiasEnable = VK_FALSE;
 	rasterizer.depthBiasConstantFactor = 0.0f; // Optional
@@ -1262,7 +1262,7 @@ void Application::updateUniformBuffer(uint32_t currentImage)
 	//float loc = -std::fabs(sinf(time * 0.01));
 	//ubo.model = glm::translate(_model, glm::vec3(0.0f, loc * 10, 0.0f));
 
-	ubo.view = glm::lookAt(glm::vec3(0.0f, 1.25f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.view = glm::lookAt(glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 100.0f);
 	ubo.proj[1][1] *= -1;
 
@@ -1760,7 +1760,7 @@ void Application::createTextureSampler()
 	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 
-	samplerInfo.anisotropyEnable = VK_TRUE;
+	samplerInfo.anisotropyEnable = VK_FALSE;
 	
 	VkPhysicalDeviceProperties props{};
 	vkGetPhysicalDeviceProperties(physicalDevice, &props);
