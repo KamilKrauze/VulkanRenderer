@@ -1,8 +1,12 @@
 #ifndef VERTEX_HPP
+#define VERTEX_HPP
 #include <vector>
 #include <array>
 
 #include <glm/glm.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
+
 #include <vulkan/vulkan.h>
 
 struct Vertex
@@ -47,7 +51,30 @@ struct Vertex
 
         return attributeDescriptions;
     }
+
+    bool operator==(const Vertex& other) const
+    {
+        return 
+            (pos == other.pos) && 
+            (colour == other.colour) && 
+            (texCoord == other.texCoord);
+    }
 };
+
+namespace std {
+    template<> struct hash<Vertex>
+    {
+        size_t operator()(Vertex const& vertex) const 
+        {
+            return 
+                (
+                    (hash<glm::vec3>()(vertex.pos) ^
+                    (hash<glm::vec3>()(vertex.colour) << 1)
+                ) >> 1) ^
+                (hash<glm::vec2>()(vertex.texCoord) << 1);
+        }
+    };
+}
 
 struct UniformBufferObject
 {
@@ -122,26 +149,26 @@ struct UniformBufferObject
 
 #pragma region Plane
 
-std::vector<uint16_t> indices{
-    0,1,2,
-    2,3,0,
-
-    4,5,6,
-    6,7,4
-};
-
-std::vector<Vertex> vertices{
-    {{ -0.5f,  -0.5f,   0.0f}, {1.0f, 0.0f, 0.0f}, {-1.0f, -1.0f,  -1.0f}, {0.0f, 0.0f}}, // Vertex 0
-    {{  0.5f,  -0.5f,   0.0f}, {0.0f, 1.0f, 0.0f}, { 1.0f, -1.0f,  -1.0f}, {1.0f, 0.0f}}, // Vertex 1
-    {{  0.5f,   0.5f,   0.0f}, {0.0f, 0.0f, 1.0f}, { 1.0f,  1.0f,  -1.0f}, {1.0f, 1.0f}}, // Vertex 2
-    {{ -0.5f,   0.5f,   0.0f}, {1.0f, 1.0f, 1.0f}, {-1.0f,  1.0f,  -1.0f}, {0.0f, 1.0f}}, // Vertex 3
-
-    {{ -0.5f,  -0.5f,  -0.5f}, {1.0f, 0.0f, 0.0f}, {-1.0f, -1.0f,  -1.0f}, {0.0f, 0.0f}}, // Vertex 4
-    {{  0.5f,  -0.5f,  -0.5f}, {0.0f, 1.0f, 0.0f}, { 1.0f, -1.0f,  -1.0f}, {1.0f, 0.0f}}, // Vertex 5
-    {{  0.5f,   0.5f,  -0.5f}, {0.0f, 0.0f, 1.0f}, { 1.0f,  1.0f,  -1.0f}, {1.0f, 1.0f}}, // Vertex 6
-    {{ -0.5f,   0.5f,  -0.5f}, {1.0f, 1.0f, 1.0f}, {-1.0f,  1.0f,  -1.0f}, {0.0f, 1.0f}}, // Vertex 7
-
-};
+//std::vector<uint16_t> indices{
+//    0,1,2,
+//    2,3,0,
+//
+//    4,5,6,
+//    6,7,4
+//};
+//
+//std::vector<Vertex> vertices{
+//    {{ -1.0f,  -1.0f,   0.0f}, {1.0f, 0.0f, 0.0f}, { 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}}, // Vertex 0
+//    {{  1.0f,  -1.0f,   0.0f}, {0.0f, 1.0f, 0.0f}, { 0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}}, // Vertex 1
+//    {{  1.0f,   1.0f,   0.0f}, {0.0f, 0.0f, 1.0f}, { 0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}}, // Vertex 2
+//    {{ -1.0f,   1.0f,   0.0f}, {1.0f, 1.0f, 1.0f}, { 0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}, // Vertex 3
+//
+//    {{ -1.0f,  -1.0f,  -1.0f}, {1.0f, 0.0f, 0.0f}, { 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}}, // Vertex 4
+//    {{  1.0f,  -1.0f,  -1.0f}, {0.0f, 1.0f, 0.0f}, { 0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}}, // Vertex 5
+//    {{  1.0f,   1.0f,  -1.0f}, {0.0f, 0.0f, 1.0f}, { 0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}}, // Vertex 6
+//    {{ -1.0f,   1.0f,  -1.0f}, {1.0f, 1.0f, 1.0f}, { 0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}, // Vertex 7
+//
+//};
 
 #pragma endregion
 

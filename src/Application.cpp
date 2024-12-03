@@ -1,6 +1,7 @@
 #include "Application.h"
 #include "Utils/logger.hpp"
 #include "Renderer/Buffers/Vertex.hpp"
+#include "Renderer/Buffers/Model.hpp"
 
 #include <stdexcept>
 #include <iostream>
@@ -40,6 +41,8 @@ constexpr int MAX_FRAMES_IN_FLIGHT = 3;
 uint32_t currentFrame = 0;
 
 bool frameBufferResized = false;
+
+Model model;
 
 const std::vector<const char*> deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -84,8 +87,15 @@ void Application::initWindow()
 	LOG_SUCCESS("Created window!");
 }
 
+#if defined(DEBUG) || defined(NDEBUG)
+constexpr const char* MODEL_FP = "../models/viking_room.obj";
+#else
+constexpr const char* MODEL_FP = "./models/viking_room.obj";
+#endif
+
 void Application::initVulkan()
 {
+	model.load(MODEL_FP);
 	createInstance();
 	setupDebugMessenger();
 	createSurface();
@@ -166,11 +176,7 @@ void Application::cleanup()
 
 	vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayout, nullptr);
 
-	vkDestroyBuffer(logicalDevice, indexBuffer, nullptr);
-	vkFreeMemory(logicalDevice, indexBufferMemory, nullptr);
-
-	vkDestroyBuffer(logicalDevice, vertexBuffer, nullptr);
-	vkFreeMemory(logicalDevice, vertexBufferMemory, nullptr);
+	model.freeBuffers(logicalDevice);
 	
 	vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
@@ -804,8 +810,8 @@ void Application::createGraphicsPipeline()
 	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 	rasterizer.lineWidth = 1.0f;
 	
-	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+	//rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+	//rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	
 	rasterizer.depthBiasEnable = VK_FALSE;
 	rasterizer.depthBiasConstantFactor = 0.0f; // Optional
@@ -1087,15 +1093,17 @@ void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
 		scissor.extent = swapChainExtent;
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-		VkBuffer vertexBuffers[] = { vertexBuffer };
+		VkBuffer vertexBuffers[] = { model.getVtxBuffer() };
 		VkDeviceSize offsets[] = { 0 };
 
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+		//vkCmdBindIndexBuffer(commandBuffer, model.getIdxBuffer(), 0, VK_INDEX_TYPE_UINT32);
+		model.bindIdxBuffer(commandBuffer);
 
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
 		//vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0); // Non-indexed
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+		//vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(model.indices.size()), 1, 0, 0, 0);
+		model.drawIdx(commandBuffer);
 	}
 	vkCmdEndRenderPass(commandBuffer);
 
@@ -1278,7 +1286,7 @@ void Application::updateUniformBuffer(uint32_t currentImage)
 
 	UniformBufferObject ubo;
 	glm::mat4 _model(1.0f);
-	ubo.model = glm::rotate(_model, time * glm::radians(180.0f) * 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+	ubo.model = glm::rotate(_model, time * glm::radians(180.0f) * 0.01f, glm::vec3(0.0f, 0.0f, 1.0f));
 	//float loc = -std::fabs(sinf(time * 0.01));
 	//ubo.model = glm::translate(_model, glm::vec3(0.0f, loc * 10, 0.0f));
 
@@ -1291,7 +1299,10 @@ void Application::updateUniformBuffer(uint32_t currentImage)
 
 void Application::createVertexBuffer()
 {
-	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+	auto& buffer = model.getVtxBuffer();
+	auto& bufferMem = model.getVtxMem();
+
+	VkDeviceSize bufferSize = sizeof(model.vertices[0]) * model.vertices.size();
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -1306,11 +1317,11 @@ void Application::createVertexBuffer()
 
 	void* data;
 	vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, vertices.data(), (size_t)bufferSize);
+	memcpy(data, model.vertices.data(), (size_t)bufferSize);
 	vkUnmapMemory(logicalDevice, stagingBufferMemory);
 
-	createBuffer(bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, vertexBuffer, vertexBufferMemory);
-	cpyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+	createBuffer(bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, buffer, bufferMem);
+	cpyBuffer(stagingBuffer, buffer, bufferSize);
 
 	vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
 	vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
@@ -1319,7 +1330,10 @@ void Application::createVertexBuffer()
 
 void Application::createIndexBuffer()
 {
-	VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+	auto& buffer = model.getIdxBuffer();
+	auto& bufferMem = model.getIdxMem();
+
+	VkDeviceSize bufferSize = sizeof(model.indices[0]) * model.indices.size();
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -1328,12 +1342,12 @@ void Application::createIndexBuffer()
 
 	void* data;
 	vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, indices.data(), (size_t)bufferSize);
+	memcpy(data, model.indices.data(), (size_t)bufferSize);
 	vkUnmapMemory(logicalDevice, stagingBufferMemory);
 
-	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer, bufferMem);
 
-	cpyBuffer(stagingBuffer, indexBuffer, bufferSize);
+	cpyBuffer(stagingBuffer, buffer, bufferSize);
 
 	vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
 	vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
@@ -1525,17 +1539,20 @@ void Application::createDescriptorSets()
 
 }
 
+#if defined(DEBUG) || defined(NDEBUG)
+constexpr const char* texture_path = "../textures/viking_room.png";
+#elif defined(SHIPPING)
+constexpr const char* texture_path = "./textures/viking_room.png";
+
+#endif
+
 void Application::createTextureImage()
 {
 	int texWidth = 0, texHeight = 0, texChannels = 0;
 
 	stbi_uc* pixels = nullptr;
 
-#if defined(DEBUG) || defined(NDEBUG)
-	pixels = stbi_load("../textures/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-#elif defined(SHIPPING)
-	pixels = stbi_load("./textures/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-#endif
+	pixels = stbi_load(texture_path, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 	VkDeviceSize imgSize = texWidth * texHeight * 4;
 
 	if (!pixels)

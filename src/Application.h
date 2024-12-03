@@ -157,12 +157,6 @@ private:
 
 	VkCommandPool commandPool;
 
-	VkBuffer vertexBuffer;
-	VkDeviceMemory vertexBufferMemory;
-
-	VkBuffer indexBuffer;
-	VkDeviceMemory indexBufferMemory;
-
 	std::vector<VkBuffer> uniformBuffers;
 	std::vector<VkDeviceMemory> uniformBuffersMemory;
 	std::vector<void*> uniformBuffersMapped;
