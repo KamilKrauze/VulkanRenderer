@@ -80,7 +80,7 @@ private:
 	VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 	void createSwapChain();
-	void createImageViews();
+	void createSwapChainImgViews();
 
 	void createGraphicsPipeline();
 	static std::vector<char> loadShader(const std::string& filename);
@@ -123,9 +123,12 @@ private:
 	void copyBufferToImg(VkBuffer buffer, VkImage img, uint32_t width, uint32_t height);
 
 	void createTextureImgView();
-	VkImageView createImgView(VkImage img, VkFormat fmt);
-
+	VkImageView createImgView(VkImage img, VkFormat fmt, VkImageAspectFlags aspectFlags);
 	void createTextureSampler();
+
+	void createDepthResources();
+	VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+	VkFormat findDepthFormat();
 
 private:
 	GLFWwindow* window;
@@ -180,6 +183,10 @@ private:
 
 	VkImageView textureImgView;
 	VkSampler textureSampler;
+
+	VkImage depthImage;
+	VkDeviceMemory depthImageMemory;
+	VkImageView depthImgView;
 };
 
 #endif //!APPLICATION_H
