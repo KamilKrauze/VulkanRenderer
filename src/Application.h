@@ -118,17 +118,19 @@ private:
 	void createDescriptorSets();
 
 	void createTextureImage();
-	void createImg(uint32_t width, uint32_t height, VkFormat fmt, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags props, VkImage& img, VkDeviceMemory& imgMemory);
-	void transitionImgLayout(VkImage img, VkFormat fmt, VkImageLayout oldLayout, VkImageLayout newLayout);
+	void createImg(uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat fmt, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags props, VkImage& img, VkDeviceMemory& imgMemory);
+	void transitionImgLayout(VkImage img, VkFormat fmt, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels);
 	void copyBufferToImg(VkBuffer buffer, VkImage img, uint32_t width, uint32_t height);
 
 	void createTextureImgView();
-	VkImageView createImgView(VkImage img, VkFormat fmt, VkImageAspectFlags aspectFlags);
+	VkImageView createImgView(VkImage img, VkFormat fmt, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
 	void createTextureSampler();
 
 	void createDepthResources();
 	VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 	VkFormat findDepthFormat();
+
+	void generateMipmaps(VkImage img, VkFormat fmt, int32_t width, int32_t height, uint32_t mipLevels);
 
 private:
 	GLFWwindow* window;
@@ -170,6 +172,7 @@ private:
 	std::vector<VkSemaphore> renderFinishedSemaphores;
 	std::vector<VkFence> inFlightFences;
 
+	uint32_t mipLevels;
 	VkImage textureImg;
 	VkDeviceMemory textureImgMemory;
 	VkBuffer stagingBuffer;
