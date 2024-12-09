@@ -16,7 +16,6 @@ SYS:str = platform.system()
 CWD:str = os.getcwd()
 last_token:str = CWD.split('\\')[-1]
 
-
 if __name__ == "__main__":
     if last_token == "scripts":
         os.chdir("..")
