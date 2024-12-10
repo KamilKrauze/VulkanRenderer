@@ -4,6 +4,7 @@
 
 #include "Application.h"
 #include "Utils/logger.hpp"
+#include "Core/KInstance.hpp"
 
 int main()
 {
@@ -24,5 +25,5 @@ int main()
 	LOG_SUCCESS("Succesfully closed application!");
 	std::cout << "Press ENTER to close...";
 	std::cin.get();
-	return EXIT_SUCCESS;
+	return EXIT_SUCCESS;	
 }

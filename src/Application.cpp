@@ -1,5 +1,8 @@
 #include "Application.h"
+
 #include "Utils/logger.hpp"
+#include "Core/DebugMessenger.hpp"
+
 #include "Renderer/Buffers/Vertex.hpp"
 #include "Renderer/Buffers/Model.hpp"
 
@@ -97,7 +100,7 @@ void Application::initVulkan()
 {
 	model.load(MODEL_FP);
 	createInstance();
-	setupDebugMessenger();
+	Debug::setupDebugMessenger(instance, debugMessenger);
 	createSurface();
 	pickPhysicalDevice();
 	createLogicalDevice();
@@ -194,7 +197,7 @@ void Application::cleanup()
 	vkDestroyDevice(logicalDevice, nullptr);
 	
 	if (enableValidationLayers)
-		DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+		Debug::DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 
 	vkDestroySurfaceKHR(instance, surface, nullptr);
 	vkDestroyInstance(instance, nullptr);
@@ -205,7 +208,7 @@ void Application::cleanup()
 
 void Application::createInstance()
 {
-	if (enableValidationLayers && !checkValidationLayerSupport())
+	if (Debug::enableValidationLayers && !Debug::checkValidationLayerSupport())
 		throw std::runtime_error("Validation layers requested, but not available!");
 	else if (enableValidationLayers)
 		LOG_INFO("Running Vulkan application with validation layers.\n");
@@ -232,7 +235,7 @@ void Application::createInstance()
 		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
 		createInfo.ppEnabledLayerNames = validationLayers.data();
 
-		populateDebugMessengerCreateInfo(debugCreateInfo);
+		Debug::populateDebugMessengerCreateInfo(debugCreateInfo);
 		createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
 	}
 	else {
@@ -380,32 +383,6 @@ void Application::createSurface()
 
 }
 
-bool Application::checkValidationLayerSupport()
-{
-	uint32_t layerCount = 0;
-	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-
-	std::vector<VkLayerProperties> availableLayers(layerCount);
-	vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
-
-	for (const char* name : validationLayers)
-	{
-		bool layerFound = false;
-
-		for (const auto& properties : availableLayers)
-		{
-			if (strcmp(name, properties.layerName) == 0) {
-				layerFound = true;
-				break;
-			}
-		}
-		if (!layerFound)
-			return false;
-	}
-
-	return true;
-}
-
 std::vector<const char*> Application::getRequiredExtensions()
 {
 	uint32_t glfwExtensionCount = 0;
@@ -418,75 +395,6 @@ std::vector<const char*> Application::getRequiredExtensions()
 		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
 	return extensions;
-}
-
-void Application::setupDebugMessenger()
-{
-	if (!enableValidationLayers)
-		return;
-
-	VkDebugUtilsMessengerCreateInfoEXT createInfo{};
-	populateDebugMessengerCreateInfo(createInfo);
-
-	TRY_EXECVK(
-		CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger),
-		"Failed to setup debug messenger!",
-		"Debug messenger setup!"
-	);
-}
-
-void Application::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
-{
-	createInfo = {};
-	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-	createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-	createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-	createInfo.pfnUserCallback = debugCallback;
-	createInfo.pUserData = nullptr; // Optional
-}
-
-VkResult Application::CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
-{
-	auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-	if (func != nullptr) {
-		return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-	}
-	else {
-		return VK_ERROR_EXTENSION_NOT_PRESENT;
-	}
-}
-
-void Application::DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)
-{
-	auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-	if (func != nullptr) {
-		func(instance, debugMessenger, pAllocator);
-	}
-}
-
-VKAPI_ATTR VkBool32 VKAPI_CALL Application::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
-{
-	
-	std::stringstream ss;
-	ss << "Validation layer: " << pCallbackData->pMessage << "\033[0m\n";
-	
-	switch (messageSeverity)
-	{
-	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-		LOG_VERBOSE(ss.str().c_str());
-		break;
-	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-		LOG_INFO(ss.str().c_str());
-		break;
-	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-		LOG_WARNING(ss.str().c_str());
-		break;
-	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-		LOG_ERROR(ss.str().c_str());
-		break;
-	}
-	
-	return VK_FALSE;
 }
 
 bool Application::isDeviceSuitable(VkPhysicalDevice device)
