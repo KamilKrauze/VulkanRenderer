@@ -6,13 +6,17 @@
 #include <vulkan/vulkan.h>
 
 /// <summary>
-/// Krauze Renderer Instance
+/// Krauze Renderer Vulkan Instance Wrapper
 /// </summary>
 class KInstance
 {
 public:
 	KInstance() = default;
 	~KInstance() = default;
+
+public:
+	void create(VkApplicationInfo& appInfo);
+    VkInstance& get();
 
 private:
 	VkInstance inst;
@@ -21,15 +25,47 @@ private:
 class AppInfoBuilder
 {
 public:
-	AppInfoBuilder();
+    AppInfoBuilder()
+    {
+        appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    }
+
 	~AppInfoBuilder() = default;
 public:
-	AppInfoBuilder& setAppName(std::string_view name);
-	AppInfoBuilder& setEngineName(std::string_view name);
-	AppInfoBuilder& setApplicationVersion(uint32_t version);
-	AppInfoBuilder& setEngineVersion(uint32_t version);
-	AppInfoBuilder& setAPIVersion(uint32_t version);
-	VkApplicationInfo& get();
+    AppInfoBuilder& setAppName(std::string_view name)
+    {
+        appInfo.pApplicationName = name.data();
+        return *this;
+    }
+
+    AppInfoBuilder& setEngineName(std::string_view name)
+    {
+        appInfo.pEngineName = name.data();
+        return *this;
+    }
+
+    AppInfoBuilder& setApplicationVersion(uint32_t version)
+    {
+        appInfo.applicationVersion = version;
+        return *this;
+    }
+
+    AppInfoBuilder& setEngineVersion(uint32_t version)
+    {
+        appInfo.engineVersion = version;
+        return *this;
+    }
+
+    AppInfoBuilder& setAPIVersion(uint32_t version)
+    {
+        appInfo.apiVersion = version;
+        return *this;
+    }
+
+    VkApplicationInfo& get()
+    {
+        return appInfo;
+    }
 
 private:
 	VkApplicationInfo appInfo{};
