@@ -17,7 +17,7 @@ if __name__ == "__main__":
     CWD:str = os.getcwd()
     last_token = CWD.split('\\')[-1]
 
-    if last_token == "Scripts":
+    if last_token == "scripts":
         os.chdir("..")
     generate_project()
     
