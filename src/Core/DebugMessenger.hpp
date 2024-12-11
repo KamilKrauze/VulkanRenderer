@@ -77,7 +77,7 @@ namespace Debug
 
 	inline void setupDebugMessenger(VkInstance& instance, VkDebugUtilsMessengerEXT& debugMessenger)
 	{
-#if CHECK_BUILD_CONFIG
+#if !CHECK_BUILD_CONFIG
 		return;
 #endif
 		VkDebugUtilsMessengerCreateInfoEXT createInfo{};
