@@ -30,17 +30,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb-image/stb_image.h>
 
-#define TRY_EXECVK(fn, errorMsg, successMsg)	\
-if (fn != VK_SUCCESS)							\
-{												\
-	throw std::runtime_error(errorMsg);			\
-}												\
-LOG_SUCCESS(successMsg)							\
-
 #define hasStencilComponent(fmt) (fmt == VK_FORMAT_D32_SFLOAT_S8_UINT || fmt == VK_FORMAT_D24_UNORM_S8_UINT)
-
-constexpr uint32_t WIDTH = 800;
-constexpr uint32_t HEIGHT = 600;
 
 constexpr int MAX_FRAMES_IN_FLIGHT = 3;
 
@@ -53,11 +43,6 @@ Model model;
 size_t frame = 0;
 double prevTime = 0;
 double fps;
-
-static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
-{
-	frameBufferResized = true;
-}
 
 #if defined(DEBUG) || defined(NDEBUG)
 constexpr const char* MODEL_FP = "../models/viking_room.obj";
