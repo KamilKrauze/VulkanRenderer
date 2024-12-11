@@ -12,6 +12,7 @@ void KInstance::create(VkApplicationInfo& appInfo)
 	else
 		LOG_INFO("Running Vulkan application with validation layers.\n");
 #endif
+
 	auto extensions = GFXExt::getRequiredExtensions();
 
 	VkInstanceCreateInfo createInfo{};
