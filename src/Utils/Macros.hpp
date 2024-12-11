@@ -7,4 +7,11 @@
 #define CHECK_BUILD_CONFIG 0
 #endif
 
+#define TRY_EXECVK(fn, errorMsg, successMsg)	\
+if (fn != VK_SUCCESS)							\
+{												\
+	throw std::runtime_error(errorMsg);			\
+}												\
+LOG_SUCCESS(successMsg)	
+
 #endif
