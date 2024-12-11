@@ -5,20 +5,22 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 
+#include "Core/KInstance.hpp"
 #include "Utils/Logger.hpp"
 
 namespace Debug
 {
+
+#if defined(DEBUG) || defined(NDEBUG) || defined(USE_VALIDATION_LAYERS)
+	
+#include "Utils/Macros.hpp"
+
 	const std::vector<const char*> validationLayers =
 	{
 		"VK_LAYER_KHRONOS_validation"
 	};
 
-#if (defined(DEBUG) && defined(NDEBUG)) || defined(USE_VALIDATION_LAYERS)
-	constexpr bool enableValidationLayers = true;
-#else 
-	constexpr bool enableValidationLayers = false;
-#endif
+
 
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
 	{
@@ -75,9 +77,9 @@ namespace Debug
 
 	inline void setupDebugMessenger(VkInstance& instance, VkDebugUtilsMessengerEXT& debugMessenger)
 	{
-		if (!enableValidationLayers)
-			return;
-
+#if CHECK_BUILD_CONFIG
+		return;
+#endif
 		VkDebugUtilsMessengerCreateInfoEXT createInfo{};
 		populateDebugMessengerCreateInfo(createInfo);
 
@@ -112,6 +114,7 @@ namespace Debug
 
 		return true;
 	}
+#endif
 
 };
 
