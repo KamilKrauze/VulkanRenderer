@@ -5,11 +5,10 @@
 #include <optional>
 #include <string>
 
-#define VK_USE_PLATFORM_WIN32_KHR
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-#define GLFW_EXPOSE_NATIVE_WIN32
-#include <GLFW/glfw3native.h>
+#include "Core/Window.hpp"
+#include "Core/KInstance.hpp"
+
+#include "Utils/Macros.hpp"
 
 #include <vulkan/vulkan.h>
 
@@ -31,22 +30,19 @@ struct SwapChainSupportDetails
 class Application
 {
 public:
-	Application() = default;
+	explicit Application(WindowSpecification&& winSpec) : window(Window(std::move(winSpec))) {}
 	~Application() = default;
 
 public:
 	void run()
 	{
-		initWindow();
+		window;
 		initVulkan();
 		mainLoop();
 		cleanup();
 	}
 private:
-	void initWindow();
-
 	void initVulkan();
-	void createInstance();
 	void pickPhysicalDevice();
 	void createLogicalDevice();
 	void createSurface();
@@ -55,8 +51,6 @@ private:
 	void cleanup();
 
 private:
-	std::vector<const char*> getRequiredExtensions();
-
 	bool isDeviceSuitable(VkPhysicalDevice device);
 	int rateDeviceSuitability(VkPhysicalDevice device);
 
@@ -125,15 +119,17 @@ private:
 	void createColourResources();
 
 private:
-	GLFWwindow* window;
-	VkInstance instance;
+	Window window;
+	KInstance instance;
+
+#if CHECK_BUILD_CONFIG
 	VkDebugUtilsMessengerEXT debugMessenger;
+#endif
 
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	VkDevice logicalDevice;
 	VkQueue graphicsQueue;
 	
-	VkSurfaceKHR surface;
 	VkQueue presentQueue;
 	VkSwapchainKHR swapChain;
 	std::vector<VkImage> swapChainImages;

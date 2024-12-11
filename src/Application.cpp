@@ -1,7 +1,10 @@
 #include "Application.h"
 
-#include "Utils/logger.hpp"
 #include "Core/DebugMessenger.hpp"
+
+#include "Utils/Extensions.hpp"
+#include "Utils/Logger.hpp"
+#include "Utils/Macros.hpp"
 
 #include "Renderer/Buffers/Vertex.hpp"
 #include "Renderer/Buffers/Model.hpp"
@@ -47,24 +50,6 @@ bool frameBufferResized = false;
 
 Model model;
 
-const std::vector<const char*> deviceExtensions = {
-	VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
-
-#define USE_VALIDATION_LAYERS
-
-const std::vector<const char*> validationLayers = {
-	"VK_LAYER_KHRONOS_validation"
-};
-
-#if defined(NDEBUG) && !defined(SHIPPING)
-constexpr bool enableValidationLayers = false;
-#elif defined(DEBUG) || defined(USE_VALIDATION_LAYERS)
-constexpr bool enableValidationLayers = true;
-#else 
-constexpr bool enableValidationLayers = false;
-#endif
-
 size_t frame = 0;
 double prevTime = 0;
 double fps;
@@ -72,22 +57,6 @@ double fps;
 static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
 {
 	frameBufferResized = true;
-}
-
-void Application::initWindow()
-{
-	glfwInit();
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
-	if (!window) {
-		LOG_ERROR("Failed window creation!\n");
-		glfwTerminate();
-	}
-
-	glfwSetWindowUserPointer(window, this);
-	glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-
-	LOG_SUCCESS("Created window!");
 }
 
 #if defined(DEBUG) || defined(NDEBUG)
@@ -99,9 +68,20 @@ constexpr const char* MODEL_FP = "./models/viking_room.obj";
 void Application::initVulkan()
 {
 	model.load(MODEL_FP);
-	createInstance();
-	Debug::setupDebugMessenger(instance, debugMessenger);
-	createSurface();
+	instance.create(
+		AppInfoBuilder()
+		.setAppName("Renderer App")
+		.setEngineName("Krauze Renderer")
+		.setApplicationVersion(VK_MAKE_VERSION(1, 0, 0))
+		.setEngineVersion(VK_MAKE_VERSION(1, 0, 0))
+		.setAPIVersion(VK_API_VERSION_1_0).get()
+	);
+
+#if CHECK_BUILD_CONFIG
+	Debug::setupDebugMessenger(instance.get(), debugMessenger);
+#endif
+
+	window.createSurface(instance);
 	pickPhysicalDevice();
 	createLogicalDevice();
 	createSwapChain();
@@ -196,96 +176,24 @@ void Application::cleanup()
 
 	vkDestroyDevice(logicalDevice, nullptr);
 	
-	if (enableValidationLayers)
-		Debug::DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
-
-	vkDestroySurfaceKHR(instance, surface, nullptr);
-	vkDestroyInstance(instance, nullptr);
-	
-	glfwDestroyWindow(window);
-	glfwTerminate();
-}
-
-void Application::createInstance()
-{
-	if (Debug::enableValidationLayers && !Debug::checkValidationLayerSupport())
-		throw std::runtime_error("Validation layers requested, but not available!");
-	else if (enableValidationLayers)
-		LOG_INFO("Running Vulkan application with validation layers.\n");
-
-	VkApplicationInfo appInfo{};
-	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	appInfo.pApplicationName = "Hello Triangle!";
-	appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-	appInfo.pEngineName = "No Engine";
-	appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-	appInfo.apiVersion = VK_API_VERSION_1_0;
-
-	auto extensions = getRequiredExtensions();
-
-	VkInstanceCreateInfo createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-	createInfo.pApplicationInfo = &appInfo;
-	createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-	createInfo.ppEnabledExtensionNames = extensions.data();
-	
-	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-	if (enableValidationLayers)
-	{
-		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-		createInfo.ppEnabledLayerNames = validationLayers.data();
-
-		Debug::populateDebugMessengerCreateInfo(debugCreateInfo);
-		createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
-	}
-	else {
-		createInfo.enabledLayerCount = 0;
-		createInfo.pNext = nullptr;
-	}
-	std::vector<const char*> requiredExtensions;
-	
-	for (uint32_t i = 0; i < extensions.size(); i++)
-	{
-		requiredExtensions.emplace_back(extensions[i]);
-	}
-#if defined(__APPLE__) && defined(__MACH__)
-	requiredExtensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-	createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#if CHECK_BUILD_CONFIG
+		Debug::DestroyDebugUtilsMessengerEXT(instance.get(), debugMessenger, nullptr);
 #endif
-	createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
-	createInfo.ppEnabledExtensionNames = requiredExtensions.data();
 
-	if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create instance!");
-
-	uint32_t vkExtCount = 0;
-	vkEnumerateInstanceExtensionProperties(nullptr, &vkExtCount, nullptr);
-	if (!vkExtCount)
-	{
-		LOG_WARNING("No available extensions\n");
-	}
-	else {
-		std::vector<VkExtensionProperties> vkExtensions(vkExtCount);
-		vkEnumerateInstanceExtensionProperties(nullptr, &vkExtCount, vkExtensions.data());
-		std::string msg = std::to_string(vkExtCount) + " extensions available: \n";
-		for (const auto& ext : vkExtensions)
-			msg += "\t\t" + std::string(ext.extensionName) + "\n";
-		LOG_INFO(msg.c_str());
-	}
-
-	return;
+	window.destroySurface(instance);
+	vkDestroyInstance(instance.get(), nullptr);
 }
 
 void Application::pickPhysicalDevice()
 {
 	constexpr const char* ERROR_MSG = "Failed to find a suitable GPU!";
 	uint32_t deviceCount = 0;
-	vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+	vkEnumeratePhysicalDevices(instance.get(), &deviceCount, nullptr);
 	if (deviceCount == 0)
 		throw std::runtime_error("Failed to find any GPU with Vulkan support!");
 	
 	std::vector<VkPhysicalDevice> devices(deviceCount);
-	vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+	vkEnumeratePhysicalDevices(instance.get(), &deviceCount, devices.data());
 
 	for (const auto& device : devices)
 	{
@@ -348,17 +256,15 @@ void Application::createLogicalDevice()
 	createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());;
 	createInfo.pQueueCreateInfos = queueCreateInfos.data();
 	createInfo.pEnabledFeatures = &deviceFeatures;
-	createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
-	createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+	createInfo.enabledExtensionCount = static_cast<uint32_t>(GFXExt::deviceExtensions.size());
+	createInfo.ppEnabledExtensionNames = GFXExt::deviceExtensions.data();
 
-	if (enableValidationLayers)
-	{
-		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-		createInfo.ppEnabledLayerNames = validationLayers.data();
-	}
-	else {
-		createInfo.enabledLayerCount = 0;
-	}
+#if CHECK_BUILD_CONFIG
+	createInfo.enabledLayerCount = static_cast<uint32_t>(Debug::validationLayers.size());
+	createInfo.ppEnabledLayerNames = Debug::validationLayers.data();
+#else
+	createInfo.enabledLayerCount = 0;
+#endif
 
 	if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &logicalDevice) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create logical device!");
@@ -376,25 +282,11 @@ void Application::createSurface()
 	createInfo.hwnd = glfwGetWin32Window(window);
 	createInfo.hinstance = GetModuleHandle(nullptr);
 
-	if (vkCreateWin32SurfaceKHR(instance, &createInfo, nullptr, &surface) != VK_SUCCESS)
+	if (vkCreateWin32SurfaceKHR(instance.get(), &createInfo, nullptr, &window.getWinSurface()) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create window surface!");
 
 	LOG_SUCCESS("Surface successfully created!");
 
-}
-
-std::vector<const char*> Application::getRequiredExtensions()
-{
-	uint32_t glfwExtensionCount = 0;
-	const char** glfwExtensions;
-	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-	std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
-	if (enableValidationLayers)
-		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-
-	return extensions;
 }
 
 bool Application::isDeviceSuitable(VkPhysicalDevice device)
@@ -464,7 +356,7 @@ QueueFamilyIndices Application::findQueueFamilies(VkPhysicalDevice device)
 			indices.graphicsFamily = i;
 
 		VkBool32 presentSupport = false;
-		vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+		vkGetPhysicalDeviceSurfaceSupportKHR(device, i, window.getWinSurface(), &presentSupport);
 
 		if (presentSupport)
 			indices.presentFamily = i;
@@ -486,7 +378,7 @@ bool Application::checkDeviceExtensionSupport(VkPhysicalDevice device)
 	std::vector<VkExtensionProperties> availableExts(extensionCount);
 	vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExts.data());
 
-	std::set<std::string> requiredExts(deviceExtensions.begin(), deviceExtensions.end());
+	std::set<std::string> requiredExts(GFXExt::deviceExtensions.begin(), GFXExt::deviceExtensions.end());
 
 	for (const auto& ext : availableExts)
 		requiredExts.erase(ext.extensionName);
@@ -497,24 +389,24 @@ bool Application::checkDeviceExtensionSupport(VkPhysicalDevice device)
 SwapChainSupportDetails Application::querySwapChainSupport(const VkPhysicalDevice& device)
 {
 	SwapChainSupportDetails details;
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, window.getWinSurface(), &details.capabilities);
 
 	uint32_t formatCount;
-	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(device, window.getWinSurface(), &formatCount, nullptr);
 
 	if (formatCount != 0)
 	{
 		details.formats.resize(formatCount);
-		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, window.getWinSurface(), &formatCount, details.formats.data());
 	}
 
 	uint32_t presentModeCount = 0;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
+	vkGetPhysicalDeviceSurfacePresentModesKHR(device, window.getWinSurface(), &presentModeCount, nullptr);
 
 	if (presentModeCount != 0)
 	{
 		details.presentModes.resize(presentModeCount);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, window.getWinSurface(), &presentModeCount, details.presentModes.data());
 	}
 
 	return details;
@@ -589,7 +481,7 @@ void Application::createSwapChain()
 
 	VkSwapchainCreateInfoKHR createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	createInfo.surface = surface;
+	createInfo.surface = window.getWinSurface();
 
 	createInfo.minImageCount = imageCount;
 	createInfo.imageFormat = surfaceFormat.format;
