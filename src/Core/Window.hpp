@@ -34,6 +34,9 @@ public:
 	~Window();
 
 public:
+	void create();
+
+public:
 	inline VkSurfaceKHR& getWinSurface() { return surface; }
 
 	int getWidth() const { return m_spec.width; }

@@ -4,10 +4,19 @@
 Window::Window(WindowSpecification&& spec)
 {
 	this->m_spec = std::move(spec);
+}
 
+Window::~Window()
+{
+	glfwDestroyWindow(window);
+	glfwTerminate();
+}
+
+void Window::create()
+{
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	window = glfwCreateWindow(m_spec.width, m_spec.height, "Vulkan", nullptr, nullptr);
+	window = glfwCreateWindow(m_spec.width, m_spec.height, m_spec.title.c_str(), nullptr, nullptr);
 	if (!window) {
 		LOG_ERROR("Failed window creation!\n");
 		glfwTerminate();
@@ -17,12 +26,6 @@ Window::Window(WindowSpecification&& spec)
 	glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
 	LOG_SUCCESS("Created window!");
-}
-
-Window::~Window()
-{
-	glfwDestroyWindow(window);
-	glfwTerminate();
 }
 
 void Window::createSurface(KInstance& instance)

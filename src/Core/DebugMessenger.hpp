@@ -11,16 +11,15 @@
 namespace Debug
 {
 
-#if defined(DEBUG) || defined(NDEBUG) || defined(USE_VALIDATION_LAYERS)
-	
 #include "Utils/Macros.hpp"
+
+#if CHECK_BUILD_CONFIG
+
 
 	static const std::vector<const char*> validationLayers =
 	{
 		"VK_LAYER_KHRONOS_validation"
 	};
-
-
 
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
 	{
