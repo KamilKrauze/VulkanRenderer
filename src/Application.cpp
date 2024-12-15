@@ -171,7 +171,7 @@ void Application::cleanup()
 
 void Application::createLogicalDevice()
 {
-	GFXDevice::Details::QueueFamilyIndices indices = GFXDevice::findQueueFamilies(physicalDevice, window.getWinSurface());
+	GFXDevice::QueueFamilyIndices indices = GFXDevice::findQueueFamilies(physicalDevice, window.getWinSurface());
 
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 	std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(), indices.presentFamily.value() };
@@ -285,7 +285,7 @@ VkExtent2D Application::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabil
 
 void Application::createSwapChain()
 {
-	GFXDevice::Details::SwapChainSupportDetails swapChainSupport = GFXDevice::querySwapChainSupport(physicalDevice, window.getWinSurface());
+	GFXDevice::SwapChainSupportDetails swapChainSupport = GFXDevice::querySwapChainSupport(physicalDevice, window.getWinSurface());
 
 	VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
 	VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
@@ -307,7 +307,7 @@ void Application::createSwapChain()
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-	GFXDevice::Details::QueueFamilyIndices indices = GFXDevice::findQueueFamilies(physicalDevice, window.getWinSurface());
+	GFXDevice::QueueFamilyIndices indices = GFXDevice::findQueueFamilies(physicalDevice, window.getWinSurface());
 	uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
 	if (indices.graphicsFamily != indices.presentFamily)
@@ -663,7 +663,7 @@ void Application::createFramebuffers()
 
 void Application::createCommandPool()
 {
-	GFXDevice::Details::QueueFamilyIndices queueFamilyIndices = GFXDevice::findQueueFamilies(physicalDevice, window.getWinSurface());
+	GFXDevice::QueueFamilyIndices queueFamilyIndices = GFXDevice::findQueueFamilies(physicalDevice, window.getWinSurface());
 	
 	VkCommandPoolCreateInfo poolInfo{};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;

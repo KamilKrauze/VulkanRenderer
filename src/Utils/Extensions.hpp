@@ -14,7 +14,7 @@
 namespace GFXExt
 {
 
-	static const std::vector<const char*> deviceExtensions = {
+	inline const std::vector<const char*> deviceExtensions = {
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME
 	};
 

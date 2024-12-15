@@ -16,7 +16,7 @@ namespace Debug
 #if CHECK_BUILD_CONFIG
 
 
-	static const std::vector<const char*> validationLayers =
+	inline const std::vector<const char*> validationLayers =
 	{
 		"VK_LAYER_KHRONOS_validation"
 	};

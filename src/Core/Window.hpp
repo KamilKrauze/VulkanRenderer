@@ -5,7 +5,7 @@
 #include <string_view>
 #include <vector>
 
-#include "Utils/logger.hpp"
+#include "Utils/Logger.hpp"
 
 #define VK_USE_PLATFORM_WIN32_KHR
 #define GLFW_INCLUDE_VULKAN

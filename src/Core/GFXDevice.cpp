@@ -7,10 +7,9 @@
 #include <set>
 #include <Utils/Extensions.hpp>
 
-
-GFXDevice::Details::QueueFamilyIndices GFXDevice::findQueueFamilies(VkPhysicalDevice& device, VkSurfaceKHR surface)
+GFXDevice::QueueFamilyIndices GFXDevice::findQueueFamilies(VkPhysicalDevice& device, VkSurfaceKHR surface)
 {
-	GFXDevice::Details::QueueFamilyIndices indices;
+	GFXDevice::QueueFamilyIndices indices;
 	uint32_t queueFamilyCount = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
 
@@ -59,9 +58,9 @@ bool GFXDevice::checkDeviceExtensionSupport(VkPhysicalDevice& device)
 	return requiredExts.empty();
 }
 
-GFXDevice::Details::SwapChainSupportDetails GFXDevice::querySwapChainSupport(VkPhysicalDevice& device, VkSurfaceKHR surface)
+GFXDevice::SwapChainSupportDetails GFXDevice::querySwapChainSupport(VkPhysicalDevice& device, VkSurfaceKHR surface)
 {
-	GFXDevice::Details::SwapChainSupportDetails details;
+	GFXDevice::SwapChainSupportDetails details;
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
 
 	uint32_t formatCount;
@@ -87,14 +86,14 @@ GFXDevice::Details::SwapChainSupportDetails GFXDevice::querySwapChainSupport(VkP
 
 bool GFXDevice::isDeviceSuitable(VkPhysicalDevice& device, VkSurfaceKHR surface)
 {
-	GFXDevice::Details::QueueFamilyIndices indices = findQueueFamilies(device, surface);
+	GFXDevice::QueueFamilyIndices indices = GFXDevice::findQueueFamilies(device, surface);
 
-	bool extensionsSupported = checkDeviceExtensionSupport(device);
+	bool extensionsSupported = GFXDevice::checkDeviceExtensionSupport(device);
 
 	bool swapChainAdequate = false;
 	if (extensionsSupported)
 	{
-		GFXDevice::Details::SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device, surface);
+		GFXDevice::SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device, surface);
 		swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
 	}
 
@@ -138,7 +137,7 @@ VkPhysicalDevice GFXDevice::pickPhysicalDevice(VkInstance instance, VkSurfaceKHR
 
 	for (auto& device : devices)
 	{
-		if (isDeviceSuitable(device, surface))
+		if (GFXDevice::isDeviceSuitable(device, surface))
 		{
 			physicalDevice = device;
 			break;
@@ -152,7 +151,7 @@ VkPhysicalDevice GFXDevice::pickPhysicalDevice(VkInstance instance, VkSurfaceKHR
 	std::multimap<int, VkPhysicalDevice> candidates;
 	for (auto& device : devices)
 	{
-		int score = rateDeviceSuitability(device);
+		int score = GFXDevice::rateDeviceSuitability(device);
 		VkPhysicalDeviceProperties deviceProps;
 		vkGetPhysicalDeviceProperties(device, &deviceProps);
 		std::cout << deviceProps.deviceName << "|" << score << "\n";
