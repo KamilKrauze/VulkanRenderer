@@ -3,7 +3,7 @@
 #include <filesystem>
 
 #include "Application.h"
-#include "Utils/logger.hpp"
+#include "Utils/Logger.hpp"
 
 int main()
 {
