@@ -22,7 +22,7 @@ struct LogMsgPair
 	const char* lvl_clr;
 };
 
-static std::map<LogLevel, LogMsgPair> Log2Str =
+inline std::map<LogLevel, LogMsgPair> Log2Str =
 {
 	{LogLevel::Verbose, {"VERBOSE", "\033[37m"}},
 	{LogLevel::Info,	{"INFO", "\033[96m"}},

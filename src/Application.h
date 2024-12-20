@@ -30,7 +30,6 @@ public:
 private:
 	void initVulkan();
 	void createLogicalDevice();
-	void createSurface();
 
 	void mainLoop();
 	void cleanup();

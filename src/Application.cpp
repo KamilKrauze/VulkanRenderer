@@ -1,27 +1,25 @@
 #include "Application.h"
 
 #include "Core/DebugMessenger.hpp"
-
+#include "Renderer/Buffers/Vertex.hpp"
+#include "Renderer/Buffers/Model.hpp"
 #include "Utils/Extensions.hpp"
 #include "Utils/Logger.hpp"
 #include "Utils/Macros.hpp"
 
-#include "Renderer/Buffers/Vertex.hpp"
-#include "Renderer/Buffers/Model.hpp"
-
-#include <stdexcept>
+#include <algorithm>
+#include <chrono>
+#include <cstdint>
+#include <fstream>
 #include <iostream>
-#include <vector>
+#include <limits>
 #include <map>
 #include <set>
-#include <cstdint>
-#include <limits>
-#include <algorithm>
-#include <fstream>
-#include <string>
 #include <sstream>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
-#include <chrono>
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
@@ -213,20 +211,6 @@ void Application::createLogicalDevice()
 	vkGetDeviceQueue(logicalDevice, indices.presentFamily.value(), 0, &presentQueue);
 
 	LOG_SUCCESS("Logical device successfully created!");
-}
-
-void Application::createSurface()
-{
-	VkWin32SurfaceCreateInfoKHR createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-	createInfo.hwnd = glfwGetWin32Window(window);
-	createInfo.hinstance = GetModuleHandle(nullptr);
-
-	if (vkCreateWin32SurfaceKHR(instance.get(), &createInfo, nullptr, &window.getWinSurface()) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create window surface!");
-
-	LOG_SUCCESS("Surface successfully created!");
-
 }
 
 VkSurfaceFormatKHR Application::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
