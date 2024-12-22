@@ -3,7 +3,7 @@
 #include <filesystem>
 
 #include "Application.h"
-#include "Utils/logger.hpp"
+#include "Utils/Logger.hpp"
 
 int main()
 {
@@ -11,7 +11,7 @@ int main()
 		try
 		{
 			std::cout << "Current path is " << std::filesystem::current_path() << std::endl;
-			Application app;
+			Application app({800, 600, "Vulkan App"});
 			app.run();
 		}
 		catch (const std::exception& e)
@@ -24,5 +24,5 @@ int main()
 	LOG_SUCCESS("Succesfully closed application!");
 	std::cout << "Press ENTER to close...";
 	std::cin.get();
-	return EXIT_SUCCESS;
+	return EXIT_SUCCESS;	
 }

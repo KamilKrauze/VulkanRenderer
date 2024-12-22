@@ -1,10 +1,10 @@
 #include "Model.hpp"
-#include "Utils/logger.hpp"
+#include "Utils/Logger.hpp"
 
 #include <unordered_map>
 
 #define TINYOBJLOADER_IMPLEMENTATION
-#include <tinyObj/tiny_obj_loader.h>
+#include <tinyOBJ/tiny_obj_loader.h>
 
 void Model::load(std::string_view fp)
 {
