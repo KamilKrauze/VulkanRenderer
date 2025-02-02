@@ -2,6 +2,8 @@
 
 This is a 3D renderer using the [Vulkan API](https://www.vulkan.org/), by following [Vulkan-Tutorial](https://vulkan-tutorial.com/), made in `C++17` using the **PreMake5** build tool.
 
+There is work in progress where the code will be completely refactored to properly separate the engines systems to be more re-useable as well to create space to take advantage of compute shaders. 
+
 The renderer currently features the ability to load SPIR-V shaders, textures and 3D models in the **OBJ** file format.
 ![image](https://github.com/user-attachments/assets/c3e28f0f-410a-4ad8-9550-41f46ebf04e7)
 
