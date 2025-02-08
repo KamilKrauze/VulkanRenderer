@@ -27,7 +27,7 @@ project "VulkanRenderer"
     }
 
     libdirs {
-        "./thirdparty/include/glfw/src/Release",
+        "./thirdparty/include/glfw/build/src/Release",
         "./thirdparty/lib/"
     }
 
