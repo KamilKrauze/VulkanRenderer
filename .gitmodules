@@ -10,3 +10,8 @@
 [submodule "thirdparty/include/tinyOBJ"]
 	path = thirdparty/include/tinyOBJ
 	url = https://github.com/tinyobjloader/tinyobjloader
+
+[submodule "thirdparty/include/imgui"]
+	path = thirdparty/include/imgui
+	url = https://www.github.com/ocornut/ImGui.git
+	branch = docking
